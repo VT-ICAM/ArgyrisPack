@@ -1,3 +1,4 @@
-mex -largeArrayDims CFLAGS='$CFLAGS -Wall -O3' ArgyrisMaps.cpp -lmwblas
-mex -largeArrayDims CFLAGS='$CFLAGS -Wall -O3' ArgyrisGradients.cpp -lmwblas
-mex -largeArrayDims CFLAGS='$CFLAGS -Wall -O3' ArgyrisHessians.cpp -lmwblas
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='$CFLAGS -Wall -O3 -std=c99' ArgyrisMapsMex.c -lmwblas
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='$CFLAGS -Wall -O3 -std=c99' ArgyrisFunctionsMex.c -lmwblas
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='$CFLAGS -Wall -O3 -std=c99' ArgyrisGradientsMex.c -lmwblas
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='$CFLAGS -Wall -O3 -std=c99' ArgyrisHessiansMex.c -lmwblas
