@@ -1,25 +1,7 @@
-#if !defined(_WIN32)
-#define dgemm dgemm_
-#endif
-
 #include "mex.h"
 #include "blas.h"
 
-#define columnOrder(row,col,entriesPerColumn) col * entriesPerColumn + row
-
-void evaluateArgyrisFunctions(double *C, double *rArgyrisFunctions,
-                              double *argyrisFunctions,
-                              mwSignedIndex quadPoints, mwSignedIndex rows)
-{
-    // stuff for DGEMM
-    char *chn = "N";
-    double one = 1.0, zero = 0.0;
-
-    // perform the transformation using the C matrix.
-    dgemm(chn, chn, &rows, &quadPoints, &rows, &one, C, &rows,
-          rArgyrisFunctions, &rows, &zero, argyrisFunctions, &rows);
- }
-
+#include "ArgyrisFunctions.c"
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     double *C;
