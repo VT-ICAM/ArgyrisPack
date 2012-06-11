@@ -1,3 +1,7 @@
 *.mexmaci64
 *.mex*
 *.o
+*.txt
+*.msh
+*.pyc
+*.mesh
