@@ -6,13 +6,12 @@ from math import pi
 
 def main():
     # mesh_file = "earth.mesh"
-    # t = ParseMESHFormat(mesh_file, lambert_azimuthal_projection,
+    # t = ParseMESHFormat(mesh_file, projection = lambert_azimuthal_projection,
     #                     special_borders = {'open' : (306, 374)})
     # t.save_QGE_outfiles()
 
     mesh_file = "unitsquare.mesh"
-    t = ParseMESHFormat(mesh_file, lambda t : t[:,0:2],
-                        special_borders = {'ocean' : (1,2)})
+    t = ParseMESHFormat(mesh_file, special_borders = {'ocean' : (1,2)})
     t.save_outfiles()
 
 def lambert_azimuthal_projection(coordinate_tripples, longitude_offset = -pi/4):
