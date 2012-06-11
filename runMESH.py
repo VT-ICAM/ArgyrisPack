@@ -5,16 +5,14 @@ import numpy as np
 from math import pi
 
 def main():
-    # interior_number = 376
     # mesh_file = "earth.mesh"
-    interior_number = 6
-    mesh_file = "unitsquare.mesh"
-
-    # t = MeshParser(mesh_file, interior_number, lambert_azimuthal_projection,
-    #                special_borders = [(306, 374)])
+    # t = ParseMESHFormat(mesh_file, lambert_azimuthal_projection,
+    #                     special_borders = {'open' : (306, 374)})
     # t.save_QGE_outfiles()
-    t = ParseMESHFormat(mesh_file, interior_number, lambda t : t[:,0:2],
-                   special_borders = {'ocean' : (1,2)})
+
+    mesh_file = "unitsquare.mesh"
+    t = ParseMESHFormat(mesh_file, lambda t : t[:,0:2],
+                        special_borders = {'ocean' : (1,2)})
     t.save_outfiles()
 
 def lambert_azimuthal_projection(coordinate_tripples, longitude_offset = -pi/4):

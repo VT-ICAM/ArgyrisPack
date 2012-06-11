@@ -1,6 +1,7 @@
 #! /usr/bin/env python
-import re
+
 import numpy as np
+import re
 import Mesh
 
 class ParseMESHFormat(object):
@@ -9,16 +10,16 @@ class ParseMESHFormat(object):
 
     Required Arguements
     -------------------
-    * mesh_file : the file path to the .mesh file being parsed.
-    * surface_number : the number of the Physical Surface used by GMSH to generate
-      the mesh.
+    * mesh_file : file path to the .mesh file.
 
     Optional Arguements
     -------------------
     * projection : some function that takes a M x N numpy array of cartesian
       coordinates and returns some 2 x N numpy array of their projection on to
       the plane. Defaults to simply ignoring all but the first two coordinates
-      per node.
+      per node:
+
+          projection = lambda t : t[:,0:2]
 
     * special_borders : a dictionary correlating names with GMSH 'Physical
       Line' attributes. For example,
@@ -33,10 +34,10 @@ class ParseMESHFormat(object):
 
     Properties
     ----------
-    * element_array : A numpy array listing the node numbers of every element;
+    * elements : A numpy array listing the node numbers of every element;
       for example,
 
-        print t.element_array
+        print t.elements
 
         => [[ 1  9  4 10 11  8]
             [ 1  2  9  5 12 10]
@@ -45,7 +46,7 @@ class ParseMESHFormat(object):
 
       for a quadratic mesh with four elements.
 
-    * node_array : a array of every node's coordinates, where row number
+    * nodes : a array of every node's coordinates, where row number
       corresponds to node number + 1.
 
     * edge_collections : a dictionary relating the border names to the edge tuples
@@ -58,10 +59,13 @@ class ParseMESHFormat(object):
     -------
     * save_argyris_outfiles : convert the mesh to be an Argyris mesh and save
       the results.
+
     * save_outfiles : Save the mesh data as-is (C0 elements).
 
+    * mesh_representation : return a Mesh object containing information from
+      the parsed .mesh file.
     """
-    def __init__(self, mesh_file, surface_number, projection = lambda t : t[:,0:2],
+    def __init__(self, mesh_file, projection = lambda t : t[:,0:2],
                  special_borders = {}, other_border = 'land'):
 
         self.projection = projection
@@ -71,15 +75,14 @@ class ParseMESHFormat(object):
         nodes = self._parse_section("Vertices",
                             lambda x : (map(float, x.split()[0:-1]), int(x.split()[-1])))
 
-        self.node_array = self.projection(np.vstack(map(lambda x : x[0], nodes)))
+        self.nodes = self.projection(np.vstack(map(lambda x : x[0], nodes)))
 
         elements = self._parse_section("Triangles",
                                        lambda x : map(int,x.split()[0:-1]))
-        self.element_array = np.vstack(elements)
+        self.elements = np.vstack(elements)
 
         self.edges = self._parse_section("Edges",
                                          lambda x : tuple(map(int,x.split())))
-
         other_borders = set(self.edges)
         self.edge_collections = dict()
         for name, border in self.special_borders.iteritems():
@@ -118,34 +121,66 @@ class ParseMESHFormat(object):
                     parsed_section.append(line_parse_function(line))
         return parsed_section
 
-    def build_argyris(self):
-        "Convert the mesh to an Argyris mesh."
+    def mesh_representation(self):
+        "Return the Mesh class representation of the object."
+        node_collections = {}
+        interior_nodes = set(range(1,self.elements.max() + 1))
+        for name, edge_collection in self.edge_collections.iteritems():
+            new_collection = set([x for sublist in edge_collection
+                                    for x in sublist[0:-1]])
+            # TODO find a deterministic way of ensuring uniqueness.
+            for other_name, other_collection in node_collections.iteritems():
+                if other_name == name:
+                    pass
+                else:
+                    new_collection.difference_update(other_collection)
+
+            node_collections[name] = new_collection
+            interior_nodes.difference_update(new_collection)
+
+        if interior_nodes:
+            node_collections['interior'] = interior_nodes
+
+        return Mesh.Mesh(self.elements, self.nodes, node_collections)
+
+    def argyris_representation(self):
+        "Return an Argyris mesh built by adding 5 more nodes on to each corner."
         # check to make sure the input mesh is quadratics.
-        if self.element_array.shape[1] != 6:
+        if self.elements.shape[1] != 6:
             raise ValueError("requires a quadratic mesh")
 
         node_collections = []
         # build the collections of boundary nodes. Simultaneously delete them
         # from the interior node containers.
-        interior_normal_derivatives = set(self.element_array[:, 3:].flatten())
-        interior_function_values = set(self.element_array[:, 0:3].flatten())
+        interior_normal_derivatives = set(self.elements[:, 3:].flatten())
+        interior_function_values = set(self.elements[:, 0:3].flatten())
 
         for border_name, collection in self.edge_collections.iteritems():
             function_values = set([x[0] for x in collection] +
                                   [x[1] for x in collection])
             normal_derivatives = set([x[2] for x in collection])
+
             node_collections.append(
                 Mesh.ArgyrisNodeCollection(function_values,
-                                            normal_derivatives,
-                                            name = border_name))
+                                           normal_derivatives,
+                                           name = border_name))
             interior_normal_derivatives.difference_update(normal_derivatives)
             interior_function_values.difference_update(function_values)
+
+            # ensure uniqueness of the ends of edges.
+            for collection in node_collections:
+                if collection.name == border_name:
+                    pass
+                else:
+                    collection.function_values.difference_update(function_values)
 
         node_collections.append(
             Mesh.ArgyrisNodeCollection(interior_function_values,
                                        interior_normal_derivatives,
                                        name = 'interior'))
-        return Mesh.ArgyrisMesh(node_collections, self.element_array)
+
+        return Mesh.ArgyrisMesh(node_collections, self.elements,
+                                self.nodes)
 
     def save_QGE_outfiles(self):
         """
@@ -159,55 +194,13 @@ class ParseMESHFormat(object):
         and for each border in edge_collections with key NAME, as well as the
         interior nodes:
 
-            NAMEdx.txt       : nodes approximating x-derivatives
-            NAMEdy.txt       : nodes approximating y-derivatives
-            NAMEnormal.txt   : nodes approximating normal derivatives
-            NAMEfunction.txt : nodes approximating function values
-            NAMEall.txt      : all nodes in the collection.
+            NAME_dx.txt       : nodes approximating x-derivatives
+            NAME_dy.txt       : nodes approximating y-derivatives
+            NAME_normal.txt   : nodes approximating normal derivatives
+            NAME_function.txt : nodes approximating function values
+            NAME_all.txt      : all nodes in the collection.
         """
-
-        argyris = self.build_argyris()
-
-        # construct the nodal coordinates array.
-        all_nodes = np.zeros((argyris.elements.max(),2))
-        all_nodes[0:self.node_array.shape[0], :] = self.node_array
-        for collection in argyris.node_collections:
-            for pair in collection.stacked_nodes.iteritems():
-                for new_node in pair[1]:
-                    all_nodes[new_node - 1, :] = self.node_array[pair[0] - 1, :]
-
-        # save node indicies containing function values.
-        u_nodes = np.unique(argyris.elements[:,0:3].flatten())
-
-        # fix the numbering on the argyris.elements to match QGE code.
-        normal_derivatives1 = argyris.elements[:,3].copy()
-        normal_derivatives2 = argyris.elements[:,4].copy()
-        normal_derivatives3 = argyris.elements[:,5].copy()
-
-        first_nodes  = argyris.elements[:,6:11].copy()
-        second_nodes = argyris.elements[:,11:16].copy()
-        third_nodes  = argyris.elements[:,16:21].copy()
-
-        argyris.elements[:,18]    = normal_derivatives1
-        argyris.elements[:,19]    = normal_derivatives3
-        argyris.elements[:,20]    = normal_derivatives2
-
-        argyris.elements[:,3:5]   = first_nodes[:,0:2]
-        argyris.elements[:,9:12]  = first_nodes[:,2:5]
-
-        argyris.elements[:,5:7]   = second_nodes[:,0:2]
-        argyris.elements[:,12:15] = second_nodes[:,2:5]
-
-        argyris.elements[:,7:9]   = third_nodes[:,0:2]
-        argyris.elements[:,15:18] = third_nodes[:,2:5]
-
-        np.savetxt('nodes.txt', all_nodes)
-        np.savetxt('elements.txt', argyris.elements, fmt="%d")
-        np.savetxt('unodes.txt', u_nodes, fmt="%d")
-
-        # save the information stored in the node collections as well.
-        for collection in argyris.node_collections:
-            collection.write_to_files()
+        self.argyris_representation().save_QGE_files()
 
     def save_outfiles(self):
         """
@@ -215,24 +208,16 @@ class ParseMESHFormat(object):
 
             nodes.txt    : all nodal coordinates
             elements.txt : the element array for Argyris
-            interiornodes.txt : interior nodes
 
-        and for each edge collection with name NAME:
+        and for each node collection with name NAME:
 
-            NAMEnodes.txt : a list of all nodes on the named edge.
+            NAME_nodes.txt : node numbers in a collection.
         """
+        mesh = self.mesh_representation()
 
-        np.savetxt('nodes.txt', self.node_array)
-        np.savetxt('elements.txt', self.element_array, fmt="%d")
+        np.savetxt('nodes.txt', self.nodes)
+        np.savetxt('elements.txt', self.elements, fmt='%d')
 
-        node_collections = []
-        interior_nodes = set(list(self.element_array.flatten()))
-        for border_name, collection in self.edge_collections.iteritems():
-            # hack to flatten tuples of integers
-            function_values = set(np.array([x[0:-1] for x in collection]).flatten())
-            print function_values
-            interior_nodes.difference_update(function_values)
-            np.savetxt(border_name + 'nodes.txt',
-                       np.unique(np.array(list(function_values))), fmt="%d")
-
-        np.savetxt('interiornodes.txt', np.sort(list(interior_nodes)), fmt="%d")
+        for name, collection in mesh.node_collections.iteritems():
+            np.savetxt(name + '_nodes.txt', np.fromiter(collection, np.int),
+                       fmt='%d')
