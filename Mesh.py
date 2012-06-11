@@ -164,8 +164,8 @@ class ArgyrisMesh(object):
         elements[:,7:9]   = third_nodes[:,0:2]
         elements[:,15:18] = third_nodes[:,2:5]
 
-        np.savetxt('nodes.txt', all_nodes)
-        np.savetxt('elements.txt', argyris.elements, fmt="%d")
+        np.savetxt('nodes.txt', self.nodes)
+        np.savetxt('elements.txt', elements, fmt="%d")
         np.savetxt('unodes.txt', u_nodes, fmt="%d")
 
         # save the information stored in the node collections as well.
