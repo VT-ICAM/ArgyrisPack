@@ -1,18 +1,19 @@
 #! /usr/bin/env python
-
 import numpy as np
 
 class Mesh(object):
     """
-    Representation of a finite element mesh. contains three pieces:
+    Representation of a finite element mesh. Essentially a struct.
 
-    elements: an array of integers, where each row contains node numbers of
-    some element.
+    Required Arguements and Properties
+    ----------------------------------
 
-    nodes: array of global coordinates of nodes.
+    * elements : integer numpy array of the global node numbers of each
+      element.
 
-    node_collections: a dictionary of names ('inner', 'ocean', etc) paired
-    to sets of node numbers.
+    * nodes    : double precision numpy array of global node coordinates.
+
+    * node_collections : a dictionary correlating names with node numbers.
     """
     def __init__(self, elements, nodes, node_collections):
         self.elements = elements
@@ -68,9 +69,9 @@ class ArgyrisMesh(object):
             self._fix_element_order(element[0:6])
 
         # examine each element and add on appropriate Argyris nodes.
-        for element in self.elements:
+        for element_number, element in enumerate(self.elements):
             for corner_number in range(0,3):
-                self._test_and_update(element, corner_number)
+                self._test_and_update(element, element_number, corner_number)
 
         # construct the nodal coordinates array.
         self.nodes = np.zeros((self.elements.max(),2))
@@ -80,7 +81,7 @@ class ArgyrisMesh(object):
                 for new_node in pair[1]:
                     self.nodes[new_node - 1, :] = original_nodes[pair[0] - 1, :]
 
-    def _test_and_update(self, element, corner_number):
+    def _test_and_update(self, element, element_number, corner_number):
         """
         Update a corner node to have 5 more nodes stacked on it. Check if this
         node has been previously edited; if so, load the new nodes and node
@@ -90,17 +91,10 @@ class ArgyrisMesh(object):
             if element[corner_number] in collection.function_values:
                 first = 6 + corner_number*5
                 last  = 11 + corner_number*5
-                try:
-                    # if we already added new nodes at this corner, use those.
-                    element[first:last] = \
-                        collection.stacked_nodes[element[corner_number]]
-                except KeyError:
-                    # otherwise save the coordinate and numbers.
-                    collection.update(self._new_index,
-                                           element[corner_number])
-                    element[first:last] = \
-                        collection.stacked_nodes[element[corner_number]]
-                    self._new_index += 5
+                self._new_index = collection.update(self._new_index, element,
+                                                    element_number, corner_number)
+                element[first:last] = \
+                    collection.stacked_nodes[element[corner_number]]
                 break
 
     def _fix_element_order(self, element):
@@ -120,6 +114,9 @@ class ArgyrisMesh(object):
         if element[0] > element[2]:
             element[2], element[0] = element[0], element[2]
             element[3], element[4] = element[4], element[3]
+        if element[0] > element[1]:
+            element[0], element[1] = element[1], element[0]
+            element[4], element[5] = element[5], element[4]
 
     def save_QGE_files(self):
         """
@@ -174,45 +171,74 @@ class ArgyrisMesh(object):
 
 class ArgyrisNodeCollection(object):
     """
-    Contains information about a group of nodes in an Argyris Mesh.
+    Contains information about a group of nodes in an Argyris Mesh and any
+    relevant edge data.
+
+    Required Arguements
+    -------------------
+    * function_values : set of basis function numbers that approximate function
+      values on the Argyris mesh.
+    * normal_derivatives : set of the node numbers corresponding to normal
+      derivative basis functions.
+    * edges : set of tuples corresponding to edge endpoints.
+
+    Optional Arguements
+    -------------------
+    * name : prefix on the output files. Defaults to 'inner'.
     """
-    def __init__(self, function_values, normal_derivatives, name = 'inner'):
+    def __init__(self, function_values, normal_derivatives,
+                 edges, name = 'inner'):
         self.function_values = function_values
         self.normal_derivatives = normal_derivatives
+        self._edges = dict([(tuple(sorted(t)), t) for t in edges])
+
         self.name = name
 
-        self.dx = set()
-        self.dy = set()
         self.stacked_nodes = dict()
+        self._edge_elements = set()
 
-    def update(self, index, original_node):
+    def update(self, new_index, element, element_number, corner_number):
+        """
+        Update the node collection in place. If no nodes have been stacked on
+        element[corner_number] then stack nodes. Additionally, check if the
+        current element has an edge in the collection; if so, add it to
+        self._edge_elements.
+        """
+        original_node = element[corner_number]
+        # only update the stacked nodes if we have not done so already.
+
         if original_node not in self.stacked_nodes.keys():
-            self.dx.add(index)
-            self.dy.add(index + 1)
             self.stacked_nodes[original_node] = np.array(
-                range(index, index + 5), dtype=np.int)
-        else:
-            raise KeyError("Attempted to update a node a second time.")
+                range(new_index, new_index + 5), dtype=np.int)
+            new_index = new_index + 5
+
+        if self._edges: # don't bother looking for an edge element unless there
+                        # are edges.
+            for corner_candidate, edge_candidate in \
+                enumerate([(element[0], element[1]), (element[0], element[2]),
+                           (element[1], element[2])]):
+                if edge_candidate in self._edges.keys():
+                    self._edge_elements.add((corner_candidate + 1,
+                                             element_number + 1,
+                                             self._edges[edge_candidate][0],
+                                             self._edges[edge_candidate][1]))
+        return new_index
 
     def write_to_files(self):
         """
-        Write the node numbers to several text files based on type
-        (normal derivatives, dxs, dys, function values)
+        Save the data to text files; place all node numbers in the collection
+        in one file and all information on edge elements in another.
         """
-        np.savetxt(self.name + '_dx.txt', np.array(list(self.dx)), fmt="%d")
-        np.savetxt(self.name + '_dy.txt', np.array(list(self.dy)), fmt="%d")
-        np.savetxt(self.name + '_normal.txt',
-                   np.array(list(self.normal_derivatives)), fmt="%d")
-        np.savetxt(self.name + '_function.txt',
-                   np.array(list(self.function_values)), fmt="%d")
+        if self._edge_elements: # don't save if there are no edge elements.
+            np.savetxt(self.name + '_edge_elements.txt',
+                       np.array(list(self._edge_elements)), "%d")
         np.savetxt(self.name + '_all.txt',
-                   np.sort(np.hstack(self.stacked_nodes.values() +
-                                     self.stacked_nodes.keys() +
-                                     list(self.normal_derivatives))), "%d")
+                   np.unique(np.hstack(self.stacked_nodes.values() +
+                                       self.stacked_nodes.keys() +
+                                       list(self.normal_derivatives))), "%d")
 
     def __str__(self):
         return ("Node collection name: " + self.name + "\n" +
         "function values:\n" + str(self.function_values) + "\n" +
         "normal derivatives:\n" + str(self.normal_derivatives) + "\n" +
-        "x derivatives:\n" + str(self.dx) + "\n" +
-        "y derivatives:\n" + str(self.dy) + "\n")
+        "edge elements:\n" + str(self._edge_elements))
