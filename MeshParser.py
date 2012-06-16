@@ -85,6 +85,7 @@ class ParseMESHFormat(object):
                                          lambda x : tuple(map(int,x.split())))
         other_borders = set(self.edges)
         self.edge_collections = dict()
+
         for name, border in self.special_borders.iteritems():
             self.edge_collections[name] = set(filter(lambda x : x[-1] in border,
                                                        self.edges))
@@ -128,13 +129,6 @@ class ParseMESHFormat(object):
         for name, edge_collection in self.edge_collections.iteritems():
             new_collection = set([x for sublist in edge_collection
                                     for x in sublist[0:-1]])
-            # TODO find a deterministic way of ensuring uniqueness.
-            for other_name, other_collection in node_collections.iteritems():
-                if other_name == name:
-                    pass
-                else:
-                    new_collection.difference_update(other_collection)
-
             node_collections[name] = new_collection
             interior_nodes.difference_update(new_collection)
 
@@ -152,32 +146,23 @@ class ParseMESHFormat(object):
         node_collections = []
         # build the collections of boundary nodes. Simultaneously delete them
         # from the interior node containers.
-        interior_normal_derivatives = set(self.elements[:, 3:].flatten())
         interior_function_values = set(self.elements[:, 0:3].flatten())
+        interior_normal_derivatives = set(self.elements[:, 3:6].flatten())
 
         for border_name, collection in self.edge_collections.iteritems():
-            function_values = set([x[0] for x in collection] +
-                                  [x[1] for x in collection])
+            # save left points of edges.
+            function_values = set([x[0] for x in collection])
             normal_derivatives = set([x[2] for x in collection])
+            edges = set([tuple(x[0:2]) for x in collection])
 
-            node_collections.append(
-                Mesh.ArgyrisNodeCollection(function_values,
-                                           normal_derivatives,
-                                           name = border_name))
-            interior_normal_derivatives.difference_update(normal_derivatives)
+            node_collections.append(Mesh.ArgyrisNodeCollection(function_values,
+                interior_normal_derivatives, edges, name = border_name))
             interior_function_values.difference_update(function_values)
+            interior_normal_derivatives.difference_update(normal_derivatives)
 
-            # ensure uniqueness of the ends of edges.
-            for collection in node_collections:
-                if collection.name == border_name:
-                    pass
-                else:
-                    collection.function_values.difference_update(function_values)
-
-        node_collections.append(
-            Mesh.ArgyrisNodeCollection(interior_function_values,
-                                       interior_normal_derivatives,
-                                       name = 'interior'))
+        node_collections.append(Mesh.ArgyrisNodeCollection(
+            interior_function_values, interior_normal_derivatives, [],
+            name = 'interior'))
 
         return Mesh.ArgyrisMesh(node_collections, self.elements,
                                 self.nodes)
