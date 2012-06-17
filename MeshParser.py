@@ -14,8 +14,8 @@ class ParseMESHFormat(object):
 
     Optional Arguements
     -------------------
-    * projection : some function that takes a M x N numpy array of cartesian
-      coordinates and returns some 2 x N numpy array of their projection on to
+    * projection : some function that takes a N x M numpy array of cartesian
+      coordinates and returns some N x 2 numpy array of their projection on to
       the plane. Defaults to simply ignoring all but the first two coordinates
       per node:
 
@@ -72,16 +72,16 @@ class ParseMESHFormat(object):
         self.mesh_file = mesh_file
         self.special_borders = special_borders
 
-        nodes = self._parse_section("Vertices",
+        nodes = self._parse_section('Vertices',
                             lambda x : (map(float, x.split()[0:-1]), int(x.split()[-1])))
 
         self.nodes = self.projection(np.vstack(map(lambda x : x[0], nodes)))
 
-        elements = self._parse_section("Triangles",
+        elements = self._parse_section('Triangles',
                                        lambda x : map(int,x.split()[0:-1]))
         self.elements = np.vstack(elements)
 
-        self.edges = self._parse_section("Edges",
+        self.edges = self._parse_section('Edges',
                                          lambda x : tuple(map(int,x.split())))
         other_borders = set(self.edges)
         self.edge_collections = dict()
@@ -123,7 +123,9 @@ class ParseMESHFormat(object):
         return parsed_section
 
     def mesh_representation(self):
-        "Return the Mesh class representation of the object."
+        """
+        Return the Mesh class representation of the object.
+        """
         node_collections = {}
         interior_nodes = set(range(1,self.elements.max() + 1))
         for name, edge_collection in self.edge_collections.iteritems():
@@ -141,7 +143,7 @@ class ParseMESHFormat(object):
         "Return an Argyris mesh built by adding 5 more nodes on to each corner."
         # check to make sure the input mesh is quadratics.
         if self.elements.shape[1] != 6:
-            raise ValueError("requires a quadratic mesh")
+            raise ValueError('requires a quadratic mesh')
 
         node_collections = []
         # build the collections of boundary nodes. Simultaneously delete them
@@ -167,7 +169,7 @@ class ParseMESHFormat(object):
         return Mesh.ArgyrisMesh(node_collections, self.elements,
                                 self.nodes)
 
-    def save_QGE_outfiles(self):
+    def save_argyris_outfiles(self):
         """
         Convert the mesh to an Argyris mesh (requires that mesh_file be
         quadratic) and save the following files:
