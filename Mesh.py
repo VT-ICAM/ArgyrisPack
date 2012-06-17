@@ -91,15 +91,45 @@ class ArgyrisMesh(object):
             {midpoint : (element_number + 1, k) for k in range(1,4) for
              element_number, midpoint in enumerate(self.elements[:,2+k])}
 
+        # fix per-element order.
+        self._fix_argyris_node_order()
+
         # add new nodal coordinates.
         self.nodes = np.zeros((self.elements.max(), 2))
         self.nodes[0:len(original_nodes),:] = original_nodes
         for stacked_node, new_nodes in self.stacked_nodes.iteritems():
             self.nodes[new_nodes - 1] = original_nodes[stacked_node - 1]
 
-        # update the collections based on this information.
         for collection in self.node_collections:
             collection.update(self)
+
+    def save_files(self):
+        """
+        Save the following data for compatibility with the QGE code:
+
+            nodes.txt    : all nodal coordinates
+            elements.txt : the element array for Argyris
+            unodes.txt   : nodes corresponding to function values
+
+        and for each border in edge_collections with key NAME, as well as the
+        interior nodes:
+
+            NAME_dx.txt       : nodes approximating x-derivatives
+            NAME_dy.txt       : nodes approximating y-derivatives
+            NAME_normal.txt   : nodes approximating normal derivatives
+            NAME_function.txt : nodes approximating function values
+            NAME_all.txt      : all nodes in the collection.
+        """
+        u_nodes = np.unique(self.elements[:,0:3])
+
+        np.savetxt('nodes.txt', self.nodes)
+        np.savetxt('elements.txt', elements, fmt="%d")
+        np.savetxt('unodes.txt', u_nodes, fmt="%d")
+
+        # save the information stored in the node collections as well.
+        for collection in self.node_collections:
+            collection.write_to_files()
+
     def _fix_element_order(self, element):
         """
         Ensure that the corners of the input quadratic element are in increasing
@@ -121,56 +151,36 @@ class ArgyrisMesh(object):
             element[0], element[1] = element[1], element[0]
             element[4], element[5] = element[5], element[4]
 
-    def save_QGE_files(self):
+    def _fix_argyris_node_order(self):
         """
-        Save the following data for compatibility with the QGE code:
+        Fix the node orderings from the constructed format
 
-            nodes.txt    : all nodal coordinates
-            elements.txt : the element array for Argyris
-            unodes.txt   : nodes corresponding to function values
+            [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21]
 
-        and for each border in edge_collections with key NAME, as well as the
-        interior nodes:
+        to the usual Argyris format of
 
-            NAME_dx.txt       : nodes approximating x-derivatives
-            NAME_dy.txt       : nodes approximating y-derivatives
-            NAME_normal.txt   : nodes approximating normal derivatives
-            NAME_function.txt : nodes approximating function values
-            NAME_all.txt      : all nodes in the collection.
+            [1 2 3 7 8 12 13 17 18 9 10 11 14 15 16 19 20 21 4 5 6]
         """
-        # save node indicies containing function values.
-        u_nodes = np.unique(self.elements[:,0:3])
+        normal_derivatives1 = self.elements[:,3].copy()
+        normal_derivatives2 = self.elements[:,4].copy()
+        normal_derivatives3 = self.elements[:,5].copy()
 
-        # fix the numbering on the argyris.elements to match QGE code.
-        elements = self.elements.copy()
-        normal_derivatives1 = elements[:,3].copy()
-        normal_derivatives2 = elements[:,4].copy()
-        normal_derivatives3 = elements[:,5].copy()
+        first_nodes  = self.elements[:,6:11].copy()
+        second_nodes = self.elements[:,11:16].copy()
+        third_nodes  = self.elements[:,16:21].copy()
 
-        first_nodes  = elements[:,6:11].copy()
-        second_nodes = elements[:,11:16].copy()
-        third_nodes  = elements[:,16:21].copy()
+        self.elements[:,18]    = normal_derivatives1
+        self.elements[:,19]    = normal_derivatives2
+        self.elements[:,20]    = normal_derivatives3
 
-        elements[:,18]    = normal_derivatives1
-        elements[:,19]    = normal_derivatives2
-        elements[:,20]    = normal_derivatives3
+        self.elements[:,3:5]   = first_nodes[:,0:2]
+        self.elements[:,9:12]  = first_nodes[:,2:5]
 
-        elements[:,3:5]   = first_nodes[:,0:2]
-        elements[:,9:12]  = first_nodes[:,2:5]
+        self.elements[:,5:7]   = second_nodes[:,0:2]
+        self.elements[:,12:15] = second_nodes[:,2:5]
 
-        elements[:,5:7]   = second_nodes[:,0:2]
-        elements[:,12:15] = second_nodes[:,2:5]
-
-        elements[:,7:9]   = third_nodes[:,0:2]
-        elements[:,15:18] = third_nodes[:,2:5]
-
-        np.savetxt('nodes.txt', self.nodes)
-        np.savetxt('elements.txt', elements, fmt="%d")
-        np.savetxt('unodes.txt', u_nodes, fmt="%d")
-
-        # save the information stored in the node collections as well.
-        for collection in self.node_collections:
-            collection.write_to_files()
+        self.elements[:,7:9]   = third_nodes[:,0:2]
+        self.elements[:,15:18] = third_nodes[:,2:5]
 
 class ArgyrisNodeCollection(object):
     """
@@ -202,6 +212,7 @@ class ArgyrisNodeCollection(object):
 
     def update(self, mesh):
         """
+        Update the node collection based on information from a Mesh object.
         """
         self.stacked_nodes = {node : mesh.stacked_nodes[node] for node in
                               self.function_values}
