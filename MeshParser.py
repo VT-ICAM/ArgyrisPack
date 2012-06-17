@@ -151,9 +151,9 @@ class ParseMESHFormat(object):
 
         for border_name, collection in self.edge_collections.iteritems():
             # save left points of edges.
-            function_values = set([x[0] for x in collection])
-            normal_derivatives = set([x[2] for x in collection])
-            edges = set([tuple(x[0:2]) for x in collection])
+            function_values = {x[0] for x in collection}
+            normal_derivatives = {x[2] for x in collection}
+            edges = {tuple(x[0:3]) for x in collection}
 
             node_collections.append(Mesh.ArgyrisNodeCollection(function_values,
                 interior_normal_derivatives, edges, name = border_name))
