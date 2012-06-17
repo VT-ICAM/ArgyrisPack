@@ -12,14 +12,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int i;
 
     // check input.
-    if (nrhs != 5)
-    {
+    if (nrhs != 5) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisHessians",
                           "Requires five arguements.");
     }
     // check output.
-    if (nlhs != 3)
-    {
+    if (nlhs != 3) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisHessians",
                           "Requires three outputs.");
     }
@@ -33,25 +31,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     quadPoints = mxGetN(prhs[2]);
     rows = mxGetM(prhs[0]);
 
-    if (quadPoints != mxGetN(prhs[3]))
-    {
+    if (quadPoints != mxGetN(prhs[3])) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "Mismatch in number of quadrature points.");
     }
-    if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0])))
-    {
+    if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0]))) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "The C matrix must be the first arguement.");
     }
-    if ((3 != mxGetN(prhs[1])) || (3 != mxGetM(prhs[1])))
-    {
+    if ((3 != mxGetN(prhs[1])) || (3 != mxGetM(prhs[1]))) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "The Th matrix must be the second arguement.");
     }
-    for (i = 2; i < 5; ++i)
-    {
-        if (21 != mxGetM(prhs[2]))
-        {
+    for (i = 2; i < 5; ++i) {
+        if (21 != mxGetM(prhs[2])) {
             mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
               "There should be 21 basis functions corresponding to 21 rows.");
         }
