@@ -11,8 +11,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mwSignedIndex quadPoints, rows;
 
     // check input.
-    if (nrhs != 4)
-    {
+    if (nrhs != 4) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "Requires four arguements.");
     }
@@ -23,28 +22,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     quadPoints = mxGetN(prhs[2]);
     rows = mxGetM(prhs[0]);
 
-    if (quadPoints != mxGetN(prhs[3]))
-    {
+    if (quadPoints != mxGetN(prhs[3])) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "Mismatch in number of quadrature points.");
     }
-    if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0])))
-    {
+    if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0]))) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "The C matrix must be the first arguement.");
     }
-    if ((2 != mxGetN(prhs[1])) || (2 != mxGetM(prhs[1])))
-    {
+    if ((2 != mxGetN(prhs[1])) || (2 != mxGetM(prhs[1]))) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
                           "The B matrix must be the second arguement.");
     }
-    if (21 != mxGetM(prhs[2]))
-    {
+    if (21 != mxGetM(prhs[2])) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
           "There should be 21 basis functions corresponding to 21 rows.");
     }
-    if (21 != mxGetM(prhs[3]))
-    {
+    if (21 != mxGetM(prhs[3])) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:ArgyrisGradients",
           "There should be 21 basis functions corresponding to 21 rows.");
     }

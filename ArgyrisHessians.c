@@ -1,5 +1,4 @@
-#define columnOrder(row,col,entriesPerColumn) (col) * (entriesPerColumn) + (row)
-
+#define columnOrder(row,col,entriesPerColumn) (col) * (entriesPerColumn) + (row) 
 void evaluateArgyrisHessians(double *C, double *Th,
      double *rArgyrisXX, double *rArgyrisXY,
      double *rArgyrisYY, double *argyrisXX,
@@ -52,8 +51,7 @@ void evaluateArgyrisHessians(double *C, double *Th,
     // It does not matter what order we examine elements, or even if the
     // arrays are in column or row order. Therefore access everything as if it
     // was flat.
-    for (index = 0; index < rows * quadPoints; index++)
-    {
+    for (index = 0; index < rows * quadPoints; index++) {
         argyrisXXUnMapped[index] = rArgyrisXX[index] * ThInverse00 +
             rArgyrisXY[index] * ThInverse10 + rArgyrisYY[index] * ThInverse20;
 
