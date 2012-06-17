@@ -25,8 +25,7 @@ void evaluateArgyrisGradients(double * restrict C, double * restrict B,
     // perform the transformation using B inverse. This is equivalent to
     // putting the reference values in long columns side-by-side and
     // multiplying by inverseB.
-    for (index = 0; index < rows * quadPoints; index++)
-    {
+    for (index = 0; index < rows * quadPoints; index++) {
         argyrisGradientXUnMapped[index] = Binverse00 * rArgyrisGradientX[index]
         + Binverse10 * rArgyrisGradientY[index];
 

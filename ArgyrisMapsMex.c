@@ -20,8 +20,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexErrMsgIdAndTxt("ARGYRISKERNEL:fillArgyrisMaps","One input required.");
     }
 
-    if (2 != mxGetM(prhs[0]) || 3 != mxGetN(prhs[0]))
-    {
+    if (2 != mxGetM(prhs[0]) || 3 != mxGetN(prhs[0])) {
         mexErrMsgIdAndTxt("ARGYRISKERNEL:Fill3", "Input must be a 2x3 matrix.");
     }
 
