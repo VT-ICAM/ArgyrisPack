@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 import numpy as np
+import pdb
 
 class Mesh(object):
     """
@@ -61,42 +62,44 @@ class ArgyrisMesh(object):
         self.node_collections = node_collections
         self.elements = np.zeros((original_elements.shape[0], 21), dtype=np.int)
         self.elements[:,0:6] = original_elements
-        self._new_index = original_elements.max() + 1
 
         # solve a lot of orientation problems later by ensuring that the corner
         # nodes are in sorted order.
         for element in self.elements:
             self._fix_element_order(element[0:6])
 
-        # examine each element and add on appropriate Argyris nodes.
-        for element_number, element in enumerate(self.elements):
-            for corner_number in range(0,3):
-                self._test_and_update(element, element_number, corner_number)
+        # also convert the normal derivative basis functions to be in the
+        # correct order (albeit at this point they are still in the wrong
+        # column position in the array)
+        temp = self.elements[:,4].copy()
+        self.elements[:,4] = self.elements[:,5]
+        self.elements[:,5] = temp
 
-        # construct the nodal coordinates array.
-        self.nodes = np.zeros((self.elements.max(),2))
-        self.nodes[0:original_nodes.shape[0], :] = original_nodes
+        # stack new nodes.
+        n = original_elements.max() + 1
+
+        self.stacked_nodes = \
+            {node_number : np.array(range(n + 5*count, n + 5*count + 5))
+             for count, node_number in enumerate(np.unique(self.elements[:,0:3]))}
+
+        for element in self.elements:
+                element[6:11]  = self.stacked_nodes[element[0]]
+                element[11:16] = self.stacked_nodes[element[1]]
+                element[16:21] = self.stacked_nodes[element[2]]
+
+        self.edges_by_midpoint = \
+            {midpoint : (element_number + 1, k) for k in range(1,4) for
+             element_number, midpoint in enumerate(self.elements[:,2+k])}
+
+        # add new nodal coordinates.
+        self.nodes = np.zeros((self.elements.max(), 2))
+        self.nodes[0:len(original_nodes),:] = original_nodes
+        for stacked_node, new_nodes in self.stacked_nodes.iteritems():
+            self.nodes[new_nodes - 1] = original_nodes[stacked_node - 1]
+
+        # update the collections based on this information.
         for collection in self.node_collections:
-            for pair in collection.stacked_nodes.iteritems():
-                for new_node in pair[1]:
-                    self.nodes[new_node - 1, :] = original_nodes[pair[0] - 1, :]
-
-    def _test_and_update(self, element, element_number, corner_number):
-        """
-        Update a corner node to have 5 more nodes stacked on it. Check if this
-        node has been previously edited; if so, load the new nodes and node
-        numbers. Otherwise increment the global counter.
-        """
-        for collection in self.node_collections:
-            if element[corner_number] in collection.function_values:
-                first = 6 + corner_number*5
-                last  = 11 + corner_number*5
-                self._new_index = collection.update(self._new_index, element,
-                                                    element_number, corner_number)
-                element[first:last] = \
-                    collection.stacked_nodes[element[corner_number]]
-                break
-
+            collection.update(self)
     def _fix_element_order(self, element):
         """
         Ensure that the corners of the input quadratic element are in increasing
@@ -136,7 +139,7 @@ class ArgyrisMesh(object):
             NAME_all.txt      : all nodes in the collection.
         """
         # save node indicies containing function values.
-        u_nodes = np.unique(self.elements[:,0:3].flatten())
+        u_nodes = np.unique(self.elements[:,0:3])
 
         # fix the numbering on the argyris.elements to match QGE code.
         elements = self.elements.copy()
@@ -149,8 +152,8 @@ class ArgyrisMesh(object):
         third_nodes  = elements[:,16:21].copy()
 
         elements[:,18]    = normal_derivatives1
-        elements[:,19]    = normal_derivatives3
-        elements[:,20]    = normal_derivatives2
+        elements[:,19]    = normal_derivatives2
+        elements[:,20]    = normal_derivatives3
 
         elements[:,3:5]   = first_nodes[:,0:2]
         elements[:,9:12]  = first_nodes[:,2:5]
@@ -180,7 +183,7 @@ class ArgyrisNodeCollection(object):
       values on the Argyris mesh.
     * normal_derivatives : set of the node numbers corresponding to normal
       derivative basis functions.
-    * edges : set of tuples corresponding to edge endpoints.
+    * edges : set of tuples corresponding to (endpoint, endpoint, midpoint)
 
     Optional Arguements
     -------------------
@@ -190,39 +193,20 @@ class ArgyrisNodeCollection(object):
                  edges, name = 'inner'):
         self.function_values = function_values
         self.normal_derivatives = normal_derivatives
-        self._edges = dict([(tuple(sorted(t)), t) for t in edges])
+        self._edges = edges
 
         self.name = name
 
         self.stacked_nodes = dict()
-        self._edge_elements = set()
+        self._edge_elements = list()
 
-    def update(self, new_index, element, element_number, corner_number):
+    def update(self, mesh):
         """
-        Update the node collection in place. If no nodes have been stacked on
-        element[corner_number] then stack nodes. Additionally, check if the
-        current element has an edge in the collection; if so, add it to
-        self._edge_elements.
         """
-        original_node = element[corner_number]
-        # only update the stacked nodes if we have not done so already.
-
-        if original_node not in self.stacked_nodes.keys():
-            self.stacked_nodes[original_node] = np.array(
-                range(new_index, new_index + 5), dtype=np.int)
-            new_index = new_index + 5
-
-        if self._edges: # don't bother looking for an edge element unless there
-                        # are edges.
-            for corner_candidate, edge_candidate in \
-                enumerate([(element[0], element[1]), (element[0], element[2]),
-                           (element[1], element[2])]):
-                if edge_candidate in self._edges.keys():
-                    self._edge_elements.add((corner_candidate + 1,
-                                             element_number + 1,
-                                             self._edges[edge_candidate][0],
-                                             self._edges[edge_candidate][1]))
-        return new_index
+        self.stacked_nodes = {node : mesh.stacked_nodes[node] for node in
+                              self.function_values}
+        self._edge_elements = [mesh.edges_by_midpoint[edge[-1]] + edge
+                               for edge in self._edges]
 
     def write_to_files(self):
         """
@@ -231,7 +215,8 @@ class ArgyrisNodeCollection(object):
         """
         if self._edge_elements: # don't save if there are no edge elements.
             np.savetxt(self.name + '_edge_elements.txt',
-                       np.array(list(self._edge_elements)), "%d")
+                       np.asarray(self._edge_elements, dtype=np.int), "%d")
+
         np.savetxt(self.name + '_all.txt',
                    np.unique(np.hstack(self.stacked_nodes.values() +
                                        self.stacked_nodes.keys() +
