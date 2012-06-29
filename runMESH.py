@@ -11,8 +11,8 @@ def main():
     # t.save_QGE_outfiles()
 
     mesh_file = "unitsquare.mesh"
-    t = ParseMESHFormat(mesh_file, special_borders = {'ocean' : (1,2)})
-    t.save_outfiles()
+    s = ParseMESHFormat(mesh_file, special_borders = {'ocean' : (1,2,3,4)})
+    s.save_argyris_outfiles()
 
 def lambert_azimuthal_projection(coordinate_tripples, longitude_offset = -pi/4):
     """
