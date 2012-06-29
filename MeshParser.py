@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 import numpy as np
 import re
 import Mesh
@@ -64,6 +63,9 @@ class ParseMESHFormat(object):
 
     * mesh_representation : return a Mesh object containing information from
       the parsed .mesh file.
+
+    * argyris_representation : return a ArgyrisMesh object containing
+      information from the parsed .mesh file.
     """
     def __init__(self, mesh_file, projection = lambda t : t[:,0:2],
                  special_borders = {}, other_border = 'land'):
@@ -122,23 +124,6 @@ class ParseMESHFormat(object):
                     parsed_section.append(line_parse_function(line))
         return parsed_section
 
-    def mesh_representation(self):
-        """
-        Return the Mesh class representation of the object.
-        """
-        node_collections = {}
-        interior_nodes = set(range(1,self.elements.max() + 1))
-        for name, edge_collection in self.edge_collections.iteritems():
-            new_collection = set([x for sublist in edge_collection
-                                    for x in sublist[0:-1]])
-            node_collections[name] = new_collection
-            interior_nodes.difference_update(new_collection)
-
-        if interior_nodes:
-            node_collections['interior'] = interior_nodes
-
-        return Mesh.Mesh(self.elements, self.nodes, node_collections)
-
     def argyris_representation(self):
         "Return an Argyris mesh built by adding 5 more nodes on to each corner."
         # check to make sure the input mesh is quadratics.
@@ -169,6 +154,23 @@ class ParseMESHFormat(object):
         return Mesh.ArgyrisMesh(node_collections, self.elements,
                                 self.nodes)
 
+    def mesh_representation(self):
+        """
+        Return the Mesh class representation of the object.
+        """
+        node_collections = {}
+        interior_nodes = set(range(1,self.elements.max() + 1))
+        for name, edge_collection in self.edge_collections.iteritems():
+            new_collection = set([x for sublist in edge_collection
+                                    for x in sublist[0:-1]])
+            node_collections[name] = new_collection
+            interior_nodes.difference_update(new_collection)
+
+        if interior_nodes:
+            node_collections['interior'] = interior_nodes
+
+        return Mesh.Mesh(self.elements, self.nodes, node_collections)
+
     def save_argyris_outfiles(self):
         """
         Convert the mesh to an Argyris mesh (requires that mesh_file be
@@ -187,7 +189,7 @@ class ParseMESHFormat(object):
             NAME_function.txt : nodes approximating function values
             NAME_all.txt      : all nodes in the collection.
         """
-        self.argyris_representation().save_QGE_files()
+        self.argyris_representation().save_files()
 
     def save_outfiles(self):
         """

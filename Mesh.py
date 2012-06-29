@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 import numpy as np
-import pdb
 
 class Mesh(object):
     """
@@ -8,18 +7,29 @@ class Mesh(object):
 
     Required Arguements and Properties
     ----------------------------------
-
     * elements : integer numpy array of the global node numbers of each
       element.
-
-    * nodes    : double precision numpy array of global node coordinates.
-
+    * nodes : double precision numpy array of global node coordinates.
     * node_collections : a dictionary correlating names with node numbers.
+
+    Properties
+    ----------
+    * interior_nodes : an array of the node numbers correlated with the
+      'interior' node collection.
     """
     def __init__(self, elements, nodes, node_collections):
         self.elements = elements
         self.nodes = nodes
         self.node_collections = node_collections
+
+        self.interior_nodes = np.fromiter(
+            node_collections['interior'].__iter__(),
+            count = len(node_collections['interior']),
+            dtype=np.int)
+
+    def estimate_nnz(self):
+        return self.elements.shape[1]**2 * self.elements.shape[0]
+
 
 class ArgyrisMesh(object):
     """
@@ -38,24 +48,20 @@ class ArgyrisMesh(object):
     -------------------
     * node_collections : list of the ArgyrisNodeCollection objects formed
       from the quadratic mesh.
-
     * original_elements : integer numpy array of the global node numbers of
       each element in the quadratic mesh.
-
     * original_nodes : 2xN numpy array of node coordinates on the quadratic
       mesh.
 
     Properties
     ----------
     * elements : a numpy array listing the node numbers of every element.
-
     * node_collections : a list of ArgyrisNodeCollection objects.
-
     * nodes : a numpy array of node coordinates.
 
     Methods
     -------
-    * save_QGE_files : save the mesh in a format compatible to the existing QGE
+    * save_files : save the mesh in a format compatible to the existing QGE
     code.
     """
     def __init__(self, node_collections, original_elements, original_nodes):
@@ -91,7 +97,6 @@ class ArgyrisMesh(object):
             {midpoint : (element_number + 1, k) for k in range(1,4) for
              element_number, midpoint in enumerate(self.elements[:,2+k])}
 
-        # fix per-element order.
         self._fix_argyris_node_order()
 
         # add new nodal coordinates.
@@ -100,8 +105,7 @@ class ArgyrisMesh(object):
         for stacked_node, new_nodes in self.stacked_nodes.iteritems():
             self.nodes[new_nodes - 1] = original_nodes[stacked_node - 1]
 
-        for collection in self.node_collections:
-            collection.update(self)
+        for collection in self.node_collections: collection.update(self)
 
     def save_files(self):
         """
@@ -123,7 +127,7 @@ class ArgyrisMesh(object):
         u_nodes = np.unique(self.elements[:,0:3])
 
         np.savetxt('nodes.txt', self.nodes)
-        np.savetxt('elements.txt', elements, fmt="%d")
+        np.savetxt('elements.txt', self.elements, fmt="%d")
         np.savetxt('unodes.txt', u_nodes, fmt="%d")
 
         # save the information stored in the node collections as well.
@@ -159,7 +163,11 @@ class ArgyrisMesh(object):
 
         to the usual Argyris format of
 
-            [1 2 3 7 8 12 13 17 18 9 10 11 14 15 16 19 20 21 4 5 6]
+            [1 2 3 7 8 12 13 17 18 9 10 11 14 15 16 19 20 21 4 5 6].
+
+        Note that, as opposed to the usual Lagrange definition, by the point
+        this is called '4' is the midpoint of the line segment (1,2) and '5'
+        is the midpoint of the line segment (1,3).
         """
         normal_derivatives1 = self.elements[:,3].copy()
         normal_derivatives2 = self.elements[:,4].copy()
