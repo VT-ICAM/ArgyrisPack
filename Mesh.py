@@ -22,14 +22,20 @@ class Mesh(object):
         self.nodes = nodes
         self.node_collections = node_collections
 
+        # for convenience in enforcing homogeneous boundary conditions label
+        # the interior nodes.
         self.interior_nodes = np.fromiter(
             node_collections['interior'].__iter__(),
             count = len(node_collections['interior']),
             dtype=np.int)
 
     def estimate_nnz(self):
-        return self.elements.shape[1]**2 * self.elements.shape[0]
-
+        """
+        Estimate the number of nonzero entries present in some IJV-format
+        sparse matrix constructed from inner products on this collection of
+        elements.
+        """
+        return self.elements.shape[1] ** 2 * self.elements.shape[0]
 
 class ArgyrisMesh(object):
     """
@@ -102,7 +108,7 @@ class ArgyrisMesh(object):
         # add new nodal coordinates.
         self.nodes = np.zeros((self.elements.max(), 2))
         self.nodes[0:len(original_nodes),:] = original_nodes
-        for stacked_node, new_nodes in self.stacked_nodes.iteritems():
+        for stacked_node, new_nodes in self.stacked_nodes.items():
             self.nodes[new_nodes - 1] = original_nodes[stacked_node - 1]
 
         for collection in self.node_collections: collection.update(self)
@@ -236,10 +242,13 @@ class ArgyrisNodeCollection(object):
             np.savetxt(self.name + '_edge_elements.txt',
                        np.asarray(self._edge_elements, dtype=np.int), "%d")
 
+        # I used list comprehensions because they do the same thing in
+        # python2.7 and python3.*; *.values() became an iterator in python3000.
         np.savetxt(self.name + '_all.txt',
-                   np.unique(np.hstack(self.stacked_nodes.values() +
-                                       self.stacked_nodes.keys() +
-                                       list(self.normal_derivatives))), "%d")
+                   np.unique(np.hstack([x for x in self.stacked_nodes.values()] +
+                                       [x for x in self.stacked_nodes.keys()] +
+                                       [x for x in self.normal_derivatives])),
+                   "%d")
 
     def __str__(self):
         return ("Node collection name: " + self.name + "\n" +
