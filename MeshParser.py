@@ -3,6 +3,7 @@
 import numpy as np
 import re
 import Mesh
+import pdb
 
 class ParseMESHFormat(object):
     """
@@ -73,12 +74,13 @@ class ParseMESHFormat(object):
         self.special_borders = special_borders
 
         nodes = self._parse_section("Vertices",
-                            lambda x : (map(float, x.split()[0:-1]), int(x.split()[-1])))
+                            lambda x : (tuple(map(float, x.split()[0:-1])),
+                                        int(x.split()[-1])))
 
         self.nodes = self.projection(np.vstack(map(lambda x : x[0], nodes)))
 
         elements = self._parse_section("Triangles",
-                                       lambda x : map(int,x.split()[0:-1]))
+                                       lambda x : tuple(map(int,x.split()[0:-1])))
         self.elements = np.vstack(elements)
 
         self.edges = self._parse_section("Edges",
@@ -86,7 +88,7 @@ class ParseMESHFormat(object):
         other_borders = set(self.edges)
         self.edge_collections = dict()
 
-        for name, border in self.special_borders.iteritems():
+        for name, border in self.special_borders.items():
             self.edge_collections[name] = set(filter(lambda x : x[-1] in border,
                                                        self.edges))
             other_borders.difference_update(self.edge_collections[name])
@@ -94,41 +96,14 @@ class ParseMESHFormat(object):
         if other_borders: # do not update if it is empty
             self.edge_collections[other_border] = other_borders
 
-    def _parse_section(self, pattern, line_parse_function):
-        """
-        Parse one chunk of the file, starting with some regex. Apply the
-        function 'line_parse_function' to each line in the section. Return a
-        list of the results. Stop when we get to another section (triggered
-        by reaching another line with alphabetical characters).
-        """
-        found_section = False
-        found_count = False
-        parsed_section = []
-        with open(self.mesh_file) as f:
-            for line in f:
-                if (not found_section) and re.search(pattern,line):
-                    found_section = True
-
-                if found_section and (not found_count) and re.search("^ [0-9]+$",line):
-                    # if there is a lone number then we are on the next line. Ignore it.
-                    found_count = True
-                    continue
-
-                if found_section and found_count and re.search("[A-Za-z]",line):
-                    # if we have found another string then the section is over.
-                    break
-
-                if found_section and found_count:
-                    parsed_section.append(line_parse_function(line))
-        return parsed_section
-
     def mesh_representation(self):
         "Return the Mesh class representation of the object."
         node_collections = {}
         interior_nodes = set(range(1,self.elements.max() + 1))
-        for name, edge_collection in self.edge_collections.iteritems():
-            new_collection = set([x for sublist in edge_collection
-                                    for x in sublist[0:-1]])
+
+        for name, edge_collection in self.edge_collections.items():
+            new_collection = {x for sublist in edge_collection
+                                for x in sublist[0:-1]}
             node_collections[name] = new_collection
             interior_nodes.difference_update(new_collection)
 
@@ -149,7 +124,7 @@ class ParseMESHFormat(object):
         interior_function_values = set(self.elements[:, 0:3].flatten())
         interior_normal_derivatives = set(self.elements[:, 3:6].flatten())
 
-        for border_name, collection in self.edge_collections.iteritems():
+        for border_name, collection in self.edge_collections.items():
             # save left points of edges.
             function_values = {x[0] for x in collection}
             normal_derivatives = {x[2] for x in collection}
@@ -203,6 +178,37 @@ class ParseMESHFormat(object):
         np.savetxt('nodes.txt', self.nodes)
         np.savetxt('elements.txt', self.elements, fmt='%d')
 
-        for name, collection in mesh.node_collections.iteritems():
+        for name, collection in mesh.node_collections.items():
             np.savetxt(name + '_nodes.txt', np.fromiter(collection, np.int),
                        fmt='%d')
+
+    def _parse_section(self, pattern, line_parse_function):
+        """
+        Parse one chunk of the file, starting with some regex. Apply the
+        function 'line_parse_function' to each line in the section. Return a
+        list of the results. Stop when we get to another section (triggered
+        by reaching another line with alphabetical characters).
+        """
+        found_section = False
+        found_count = False
+        parsed_section = []
+        with open(self.mesh_file) as f:
+            for line in f:
+                if (not found_section) and re.search(pattern,line):
+                    found_section = True
+
+                if found_section and (not found_count) and re.search("^ [0-9]+$",
+                                                                     line):
+                    # if there is a lone number then we are on the next
+                    # line. Ignore it.
+                    found_count = True
+                    continue
+
+                if found_section and found_count and re.search("^ *[A-Z]?[a-z]+",
+                                                               line):
+                    # if we have found another string then the section is over.
+                    break
+
+                if found_section and found_count:
+                    parsed_section.append(line_parse_function(line))
+        return parsed_section
