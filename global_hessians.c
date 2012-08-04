@@ -1,50 +1,46 @@
-#include "order_logic.h"
-
-void ap_hessians(double* restrict C, double* restrict Th,
-                 double* restrict ref_dxx, double* restrict ref_dxy,
-                 double* restrict ref_dyy, LAPACKINDEX quad_points,
-                 double* restrict dxx, double* restrict dxy,
-                 double* restrict dyy)
+void ap_global_hessians(double* restrict C, double* restrict Th,
+                        double* restrict ref_dxx, double* restrict ref_dxy,
+                        double* restrict ref_dyy, LAPACKINDEX quad_points,
+                        double* restrict dxx, double* restrict dxy,
+                        double* restrict dyy)
 {
-        double dxx_unmapped[i_twentyone*quad_points];
-        double dxy_unmapped[i_twentyone*quad_points];
-        double dyy_unmapped[i_twentyone*quad_points];
+        double dxx_unmapped[21*quad_points];
+        double dxy_unmapped[21*quad_points];
+        double dyy_unmapped[21*quad_points];
         int i;
 
         /* stuff for DGEMM */
-        char c_N = 'N';
-        double one = 1.0, zero = 0.0;
-        int i_twentyone = 21;
+        LAPACKINDEX i_twentyone = 21;
 
         /* Calculate Th_inv entries. */
         const double Th_det =
-                Th[ORDER(0, 0, 3)]*(Th[ORDER(1, 1, 3)]*Th[ORDER(2, 2, 3)] -
-                                    Th[ORDER(1, 2, 3)]*Th[ORDER(2, 1, 3)]) +
-                Th[ORDER(0, 1, 3)]*(Th[ORDER(1, 2, 3)]*Th[ORDER(2, 0, 3)] -
-                                    Th[ORDER(2, 2, 3)]*Th[ORDER(1, 0, 3)]) +
-                Th[ORDER(0, 2, 3)]*(Th[ORDER(1, 0, 3)]*Th[ORDER(2, 1, 3)] -
-                                    Th[ORDER(1, 1, 3)]*Th[ORDER(2, 0, 3)]);
+                Th[ORDER(0, 0, 3, 3)]*(Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 2, 3, 3)] -
+                                    Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 1, 3, 3)]) +
+                Th[ORDER(0, 1, 3, 3)]*(Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 0, 3, 3)] -
+                                    Th[ORDER(2, 2, 3, 3)]*Th[ORDER(1, 0, 3, 3)]) +
+                Th[ORDER(0, 2, 3, 3)]*(Th[ORDER(1, 0, 3, 3)]*Th[ORDER(2, 1, 3, 3)] -
+                                    Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 0, 3, 3)]);
 
-        const double Th_inv00 = (Th[ORDER(1, 1, 3)]*Th[ORDER(2, 2, 3)] -
-                                 Th[ORDER(1, 2, 3)]*Th[ORDER(2, 1, 3)])/Th_det;
-        const double Th_inv01 = (Th[ORDER(0, 2, 3)]*Th[ORDER(2, 1, 3)] -
-                                 Th[ORDER(0, 1, 3)]*Th[ORDER(2, 2, 3)])/Th_det;
-        const double Th_inv02 = (Th[ORDER(0, 1, 3)]*Th[ORDER(1, 2, 3)] -
-                                 Th[ORDER(0, 2, 3)]*Th[ORDER(1, 1, 3)])/Th_det;
+        const double Th_inv00 = (Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 2, 3, 3)] -
+                                 Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 1, 3, 3)])/Th_det;
+        const double Th_inv01 = (Th[ORDER(0, 2, 3, 3)]*Th[ORDER(2, 1, 3, 3)] -
+                                 Th[ORDER(0, 1, 3, 3)]*Th[ORDER(2, 2, 3, 3)])/Th_det;
+        const double Th_inv02 = (Th[ORDER(0, 1, 3, 3)]*Th[ORDER(1, 2, 3, 3)] -
+                                 Th[ORDER(0, 2, 3, 3)]*Th[ORDER(1, 1, 3, 3)])/Th_det;
 
-        const double Th_inv10 = (Th[ORDER(1, 2, 3)]*Th[ORDER(2, 0, 3)] -
-                                 Th[ORDER(1, 0, 3)]*Th[ORDER(2, 2, 3)])/Th_det;
-        const double Th_inv11 = (Th[ORDER(0, 0, 3)]*Th[ORDER(2, 2, 3)] -
-                                 Th[ORDER(0, 2, 3)]*Th[ORDER(2, 0, 3)])/Th_det;
-        const double Th_inv12 = (Th[ORDER(0, 2, 3)]*Th[ORDER(1, 0, 3)] -
-                                 Th[ORDER(0, 0, 3)]*Th[ORDER(1, 2, 3)])/Th_det;
+        const double Th_inv10 = (Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 0, 3, 3)] -
+                                 Th[ORDER(1, 0, 3, 3)]*Th[ORDER(2, 2, 3, 3)])/Th_det;
+        const double Th_inv11 = (Th[ORDER(0, 0, 3, 3)]*Th[ORDER(2, 2, 3, 3)] -
+                                 Th[ORDER(0, 2, 3, 3)]*Th[ORDER(2, 0, 3, 3)])/Th_det;
+        const double Th_inv12 = (Th[ORDER(0, 2, 3, 3)]*Th[ORDER(1, 0, 3, 3)] -
+                                 Th[ORDER(0, 0, 3, 3)]*Th[ORDER(1, 2, 3, 3)])/Th_det;
 
-        const double Th_inv20 = (Th[ORDER(1, 0, 3)]*Th[ORDER(2, 1, 3)] -
-                                 Th[ORDER(1, 1, 3)]*Th[ORDER(2, 0, 3)])/Th_det;
-        const double Th_inv21 = (Th[ORDER(2, 0, 3)]*Th[ORDER(0, 1, 3)] -
-                                 Th[ORDER(0, 0, 3)]*Th[ORDER(2, 1, 3)])/Th_det;
-        const double Th_inv22 = (Th[ORDER(0, 0, 3)]*Th[ORDER(1, 1, 3)] -
-                                 Th[ORDER(0, 1, 3)]*Th[ORDER(1, 0, 3)])/Th_det;
+        const double Th_inv20 = (Th[ORDER(1, 0, 3, 3)]*Th[ORDER(2, 1, 3, 3)] -
+                                 Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 0, 3, 3)])/Th_det;
+        const double Th_inv21 = (Th[ORDER(2, 0, 3, 3)]*Th[ORDER(0, 1, 3, 3)] -
+                                 Th[ORDER(0, 0, 3, 3)]*Th[ORDER(2, 1, 3, 3)])/Th_det;
+        const double Th_inv22 = (Th[ORDER(0, 0, 3, 3)]*Th[ORDER(1, 1, 3, 3)] -
+                                 Th[ORDER(0, 1, 3, 3)]*Th[ORDER(1, 0, 3, 3)])/Th_det;
 
         /*
          * Perform the transformation using Th inverse. This is equivalent to

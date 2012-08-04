@@ -1,18 +1,14 @@
-#include "order_logic.h"
-
-void ap_gradients(double* restrict C, double* restrict B,
-                  double* restrict ref_dx, double* restrict ref_dy,
-                  LAPACKINDEX quad_points,
-                  double* restrict dx, double* restrict dy)
+void ap_global_gradients(double* restrict C, double* restrict B,
+                         double* restrict ref_dx, double* restrict ref_dy,
+                         LAPACKINDEX quad_points,
+                         double* restrict dx, double* restrict dy)
 {
-        double dx_unmapped[i_twentyone*quad_points];
-        double dy_unmapped[i_twentyone*quad_points];
+        double dx_unmapped[21*quad_points];
+        double dy_unmapped[21*quad_points];
         int i;
 
         /* stuff for DGEMM */
-        const char c_N = 'N';
-        const double one = 1.0, zero = 0.0;
-        int i_twentyone = 21;
+        LAPACKINDEX i_twentyone = 21;
 
         /* Calculate the global-to-local mapping. */
         const double B_det_inv = 1/(B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)] -
@@ -28,7 +24,7 @@ void ap_gradients(double* restrict C, double* restrict B,
          * putting the reference values in long columns side-by-side and
          * multiplying by B_inv.
          */
-        for (i = 0; i < i_twentyone*quad_points; i++) {
+        for (i = 0; i < 21*quad_points; i++) {
                 dx_unmapped[i] = B_inv00*ref_dx[i] + B_inv10*ref_dy[i];
                 dy_unmapped[i] = B_inv01*ref_dx[i] + B_inv11*ref_dy[i];
         }

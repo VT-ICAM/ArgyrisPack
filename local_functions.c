@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include "order_logic.h"
 
-void ap_functions_points(double* restrict x, double* restrict y, int quad_points,
-                         double* restrict ref_functions)
+void ap_local_functions(double* restrict x, double* restrict y, int quad_points,
+                        double* restrict ref_functions)
 {
         double monomials[21*quad_points];
         int i;

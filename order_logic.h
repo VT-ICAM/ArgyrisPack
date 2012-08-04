@@ -10,25 +10,56 @@
 
 /* constants for DGEMM_WRAPPER */
 char __c_N = 'N';
+char __c_T = 'T';
 double __d_zero = 0;
 double __d_one = 1;
 
+/* The DGEMM_WRAPPERs calls vary based on whether or not there is a transpose
+ * going on; the dimensions supplied in the first three arguments are the
+ * dimensions of op(A) and op(B), just like the original dgemm() call.
+ */
 #ifdef USE_ROW_MAJOR
         #define ORDER(row,col,nrows,ncols) (row)*(ncols) + (col)
+        /* wrap C.T := B.T * A.T */
         #define DGEMM_WRAPPER(m, n, k, A, B, C) \
-        dgemm(&__c_N, &__c_N, &n, &m, &k, &__d_one, B, &n, A, &k, &__d_zero, C, &n)
+        dgemm(&(__c_N), &(__c_N), &(n), &(m), &(k), &(__d_one), B, &(n), A, \
+             &(k), &(__d_zero), C, &(n))
+        /* wrap C.T := B * A.T (or C = A * B.T).
+         * m : number of rows of A; n : number of columns of B.T; k : number of
+         * columns of A / rows of B.T
+         */
+/* m : number of rows in A; n : number of columns in B.T; k : columns of A/rows
+ * of B.T
+ * m : number of columns in D; n : number of rows in E.T; k : number of rows in
+ * D, columns of E.T
+ */
+/* therefore E.T is n x k, D is k x m, and F is n x m*/
+        #define DGEMM_WRAPPER_NT(m, n, k, D, E, F) \
+        dgemm(&(__c_T), &(__c_N), &(n), &(m), &(k), &(__d_one), E, &(k), D, \
+              &(k), &(__d_zero), F, &(n))
+        #define DGEMM_WRAPPER_NT_ADD_C(m, n, k, D, E, F) \
+        dgemm(&(__c_T), &(__c_N), &(n), &(m), &(k), &(__d_one), E, &(k), D, \
+              &(k), &(__d_one), F, &(n))
 #endif
 
 #ifdef USE_COL_MAJOR
         #define ORDER(row,col,nrows,ncols) (col)*(nrows) + (row)
         #define DGEMM_WRAPPER(m, n, k, A, B, C) \
-        dgemm(&__c_N, &__c_N, &m, &n, &k, &__d_one, A, &m, B, &k, &__d_zero, C, &m)
+        dgemm(&(__c_N), &(__c_N), &(m), &(n), &(k), &(__d_one), A, &(m), B, \
+              &(k), &(__d_zero), C, &(m))
+        /* wrap C.T := B * A.T */
+        #define DGEMM_WRAPPER_NT(m, n, k, A, B, C) \
+        dgemm(&(__c_N), &(__c_T), &(m), &(n), &(k), &(__d_one), A, &(m), B, \
+              &(n), &(__d_zero), C, &(m))
+        #define DGEMM_WRAPPER_NT_ADD_C(m, n, k, A, B, C) \
+        dgemm(&(__c_N), &(__c_T), &(m), &(n), &(k), &(__d_one), A, &(m), B, \
+              &(n), &(__d_one), C, &(m))
 #endif
 
 #ifdef USE_ROW_MAJOR
         #ifdef USE_COL_MAJOR
                 #error "Must define either USE_COL_MAJOR or USE_ROW_MAJOR for "
-                       "storage order, not both"
+                        "storage order, not both"
         #endif
 #endif
 
