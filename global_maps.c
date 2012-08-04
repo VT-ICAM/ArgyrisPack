@@ -1,7 +1,8 @@
+#include "math.h"
 #include "order_logic.h"
 
-void ap_maps(double* restrict x, double* restrict C, double* restrict B,
-             double* restrict b, double* restrict Th)
+void ap_global_maps(double* restrict x, double* restrict C, double* restrict B,
+                    double* restrict b, double* restrict Th)
 {
         /* temporary values. */
         double x0, x1, x2, y0, y1, y2;
