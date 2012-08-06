@@ -19,6 +19,9 @@ void ap_matrix_stiffness(double* restrict C, double* restrict B,
         double dy_scaled[21*quad_points];
         double weights_scaled[quad_points];
 
+        /* stuff for DGEMM. */
+        LAPACKINDEX i_twentyone = 21;
+
         const double jacobian = fabs(B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)] -
                                      B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)]);
 
