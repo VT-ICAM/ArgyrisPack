@@ -31,13 +31,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                               "There should be 21 basis functions "
                               "corresponding to 21 rows.");
         }
-        if (mxGetN(prhs[2]) != mxGetN(prhs[3]) ||
+        if (mxGetN(prhs[2]) != mxGetN(prhs[3]) &&
             mxGetN(prhs[2]) != mxGetM(prhs[3])) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
                                   "Mismatch in number of weights "
                                   "and number of quadrature points.");
         }
-        if (mxGetM(prhs[3]) != 1 || mxGetN(prhs[3]) != 1) {
+        if (mxGetM(prhs[3]) != 1 && mxGetN(prhs[3]) != 1) {
             mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
                               "The weights must be in a one-dimensional array.");
         }

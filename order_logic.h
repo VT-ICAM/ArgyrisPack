@@ -1,3 +1,4 @@
+#include <math.h>
 #define SQRT2 1.4142135623730950
 
 /*
