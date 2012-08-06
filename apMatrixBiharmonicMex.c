@@ -30,7 +30,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                   "The Th matrix must be the third argument.");
         }
-        for (i = 3; i < 5; i++) {
+        for (i = 3; i < 6; i++) {
                 if (mxGetN(prhs[i]) != mxGetN(prhs[3])) {
                         mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                           "Mismatch in number of quadrature "
@@ -44,13 +44,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 }
 
         }
-        if (mxGetN(prhs[6]) != mxGetN(prhs[3]) ||
-            mxGetN(prhs[6]) != mxGetM(prhs[3])) {
+        if (mxGetN(prhs[6]) != mxGetN(prhs[3]) &&
+            mxGetM(prhs[6]) != mxGetN(prhs[3])) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
                                   "Mismatch in number of weights "
                                   "and number of quadrature points.");
         }
-        if (mxGetM(prhs[6]) != 1 || mxGetN(prhs[6]) != 1) {
+        if (mxGetM(prhs[6]) != 1 && mxGetN(prhs[6]) != 1) {
             mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
                               "The weights must be in a one-dimensional array.");
         }
