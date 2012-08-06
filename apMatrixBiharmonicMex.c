@@ -31,7 +31,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                                   "The Th matrix must be the third argument.");
         }
         for (i = 3; i < 5; i++) {
-                if (mxGetN(prhs[i]) != mxGetN(prhs[6])) {
+                if (mxGetN(prhs[i]) != mxGetN(prhs[3])) {
                         mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                           "Mismatch in number of quadrature "
                                           "points.");
@@ -44,14 +44,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 }
 
         }
+        if (mxGetN(prhs[6]) != mxGetN(prhs[3]) ||
+            mxGetN(prhs[6]) != mxGetM(prhs[3])) {
+                mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
+                                  "Mismatch in number of weights "
+                                  "and number of quadrature points.");
+        }
+        if (mxGetM(prhs[6]) != 1 || mxGetN(prhs[6]) != 1) {
+            mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
+                              "The weights must be in a one-dimensional array.");
+        }
 
-        C = mxGetPr(prhs[0]);
-        B = mxGetPr(prhs[1]);
-        Th = mxGetPr(prhs[2]);
-        ref_dxx = mxGetPr(prhs[3]);
-        ref_dxy = mxGetPr(prhs[4]);
-        ref_dyy = mxGetPr(prhs[5]);
-        weights = mxGetPr(prhs[6]);
+        C          = mxGetPr(prhs[0]);
+        B          = mxGetPr(prhs[1]);
+        Th         = mxGetPr(prhs[2]);
+        ref_dxx    = mxGetPr(prhs[3]);
+        ref_dxy    = mxGetPr(prhs[4]);
+        ref_dyy    = mxGetPr(prhs[5]);
+        weights    = mxGetPr(prhs[6]);
         quadPoints = mxGetN(prhs[3]);
 
         /* check output. */
@@ -60,8 +70,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                                   "Requires one output.");
         }
 
-        plhs[0]   = mxCreateDoubleMatrix(21, 21, mxREAL);
+        plhs[0]    = mxCreateDoubleMatrix(21, 21, mxREAL);
         biharmonic = mxGetPr(plhs[0]);
+
         ap_matrix_biharmonic(C, B, Th, ref_dxx, ref_dxy, ref_dyy,
                              weights, quadPoints, biharmonic);
 }
