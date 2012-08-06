@@ -21,9 +21,9 @@ double __d_one = 1;
 #ifdef USE_ROW_MAJOR
         #define ORDER(row,col,nrows,ncols) (row)*(ncols) + (col)
         /* wrap C.T := B.T * A.T */
-        #define DGEMM_WRAPPER(m, n, k, A, B, C) \
-        dgemm(&(__c_N), &(__c_N), &(n), &(m), &(k), &(__d_one), B, &(n), A, \
-             &(k), &(__d_zero), C, &(n))
+        #define DGEMM_WRAPPER(m, n, k, D, E, F) \
+        dgemm(&(__c_N), &(__c_N), &(n), &(m), &(k), &(__d_one), E, &(n), D, \
+             &(k), &(__d_zero), F, &(n))
         /* wrap C.T := B * A.T (or C = A * B.T).
          * m : number of rows of A; n : number of columns of B.T; k : number of
          * columns of A / rows of B.T
