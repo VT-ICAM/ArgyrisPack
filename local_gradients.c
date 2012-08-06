@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include "order_logic.h"
-
 void ap_local_gradients(double* restrict x, double* restrict y, int quad_points,
                         double* restrict ref_dx, double* restrict ref_dy)
 {

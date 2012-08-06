@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include "order_logic.h"
-
 void ap_local_hessians(double* restrict x, double* restrict y, int quad_points,
                        double* restrict ref_dxx, double* restrict ref_dxy,
                        double* restrict ref_dyy)

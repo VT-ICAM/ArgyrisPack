@@ -1,6 +1,3 @@
-#include "math.h"
-#include "order_logic.h"
-
 void ap_global_maps(double* restrict x, double* restrict C, double* restrict B,
                     double* restrict b, double* restrict Th)
 {
