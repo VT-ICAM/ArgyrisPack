@@ -1,4 +1,4 @@
-#include <math.h>
+#define __ORDER_LOGIC
 #define SQRT2 1.4142135623730950
 
 /*
