@@ -1,14 +1,14 @@
-void ap_local_gradients(double* restrict x, double* restrict y, int quad_points,
+void ap_local_gradients(double* restrict x, double* restrict y, LAPACKINDEX quad_points,
                         double* restrict ref_dx, double* restrict ref_dy)
 {
         double monomials[15*quad_points];
         int i;
 
         /* stuff for dgemm */
-        int i_twentyone = 21;
-        int i_fifteen = 15;
+        LAPACKINDEX i_twentyone = 21;
+        LAPACKINDEX i_fifteen = 15;
 
-#include "gradient_coefficients.h"
+#include "coefficients_gradients.h"
 
         /*
          * Rows in the monomial matrix correspond to monomials (x, y,

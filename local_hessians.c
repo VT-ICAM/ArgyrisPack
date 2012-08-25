@@ -1,4 +1,4 @@
-void ap_local_hessians(double* restrict x, double* restrict y, int quad_points,
+void ap_local_hessians(double* restrict x, double* restrict y, LAPACKINDEX quad_points,
                        double* restrict ref_dxx, double* restrict ref_dxy,
                        double* restrict ref_dyy)
 {
@@ -6,10 +6,10 @@ void ap_local_hessians(double* restrict x, double* restrict y, int quad_points,
         int i;
 
         /* stuff for dgemm */
-        int i_twentyone = 21;
-        int i_ten = 10;
+        LAPACKINDEX i_twentyone = 21;
+        LAPACKINDEX i_ten = 10;
 
-#include "hessian_coefficients.h"
+#include "coefficients_hessians.h"
 
         /*
          * Rows in the monomial matrix correspond to monomials (x, y, x^2, etc)
@@ -30,7 +30,7 @@ void ap_local_hessians(double* restrict x, double* restrict y, int quad_points,
         }
 
         DGEMM_WRAPPER(i_twentyone, quad_points, i_ten, coefficients_dxx,
-                      monomials, ref_dx);
+                      monomials, ref_dxx);
         DGEMM_WRAPPER(i_twentyone, quad_points, i_ten, coefficients_dxy,
                       monomials, ref_dxy);
         DGEMM_WRAPPER(i_twentyone, quad_points, i_ten, coefficients_dyy,
