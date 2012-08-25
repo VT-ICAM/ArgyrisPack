@@ -1,13 +1,13 @@
-void ap_local_functions(double* restrict x, double* restrict y, int quad_points,
+void ap_local_functions(double* restrict x, double* restrict y, LAPACKINDEX quad_points,
                         double* restrict ref_functions)
 {
         double monomials[21*quad_points];
         int i;
 
         /* stuff for dgemm */
-        int i_twentyone = 21;
+        LAPACKINDEX i_twentyone = 21;
 
-#include "function_coefficients.h"
+#include "coefficients_functions.h"
 
         /*
          * Rows in the monomial matrix correspond to monomials (x, y,
