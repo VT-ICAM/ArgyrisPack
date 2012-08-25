@@ -1,8 +1,7 @@
 /* a test file for ArgyrisPack */
 #include <stdio.h>
 #include "argyris_pack.h"
-
-#define ORDER(row,col,nrows,ncols) (row)*(ncols) + (col)
+#include "order_logic.h"
 
 void print_matrix(double* matrix, int rows, int cols)
 {
