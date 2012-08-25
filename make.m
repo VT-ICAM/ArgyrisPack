@@ -1,3 +1,6 @@
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='-O3 -mtune=native -DUSE_COL_MAJOR -ansi -std=c99 -D_GNU_SOURCE -pthread -m64 -fexceptions -D_FILE_OFFSET_BITS=64' apLocalFunctionsMex.c -lmwblas
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='-O3 -mtune=native -DUSE_COL_MAJOR -ansi -std=c99 -D_GNU_SOURCE -pthread -m64 -fexceptions -D_FILE_OFFSET_BITS=64' apLocalGradientsMex.c -lmwblas
+mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='-O3 -mtune=native -DUSE_COL_MAJOR -ansi -std=c99 -D_GNU_SOURCE -pthread -m64 -fexceptions -D_FILE_OFFSET_BITS=64' apLocalHessiansMex.c -lmwblas
 mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='-O3 -mtune=native -DUSE_COL_MAJOR -ansi -std=c99 -D_GNU_SOURCE -pthread -m64 -fexceptions -D_FILE_OFFSET_BITS=64' apGlobalFunctionsMex.c -lmwblas
 mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='-O3 -mtune=native -DUSE_COL_MAJOR -ansi -std=c99 -D_GNU_SOURCE -pthread -m64 -fexceptions -D_FILE_OFFSET_BITS=64' apGlobalGradientsMex.c -lmwblas
 mex -largeArrayDims -DLAPACKINDEX=mwSignedIndex CFLAGS='-O3 -mtune=native -DUSE_COL_MAJOR -ansi -std=c99 -D_GNU_SOURCE -pthread -m64 -fexceptions -D_FILE_OFFSET_BITS=64' apGlobalHessiansMex.c -lmwblas
