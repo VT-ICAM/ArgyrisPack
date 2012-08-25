@@ -1,12 +1,13 @@
 #! /usr/bin/env python
+
 import numpy as np
 
 class Mesh(object):
     """
     Representation of a finite element mesh. Essentially a struct.
 
-    Required Arguements and Properties
-    ----------------------------------
+    Required Arguments and Properties
+    ---------------------------------
     * elements : integer numpy array of the global node numbers of each
       element.
     * nodes : double precision numpy array of global node coordinates.
@@ -35,7 +36,7 @@ class Mesh(object):
         sparse matrix constructed from inner products on this collection of
         elements.
         """
-        return self.elements.shape[1] ** 2 * self.elements.shape[0]
+        return self.elements.shape[1]**2 * self.elements.shape[0]
 
 class ArgyrisMesh(object):
     """
@@ -50,8 +51,8 @@ class ArgyrisMesh(object):
     previously. If not, use the class-scope variable _new_index to add five
     new nodes at the current corner. Update the appropriate node container.
 
-    Required Arguements
-    -------------------
+    Required Arguments
+    ------------------
     * node_collections : list of the ArgyrisNodeCollection objects formed
       from the quadratic mesh.
     * original_elements : integer numpy array of the global node numbers of
@@ -201,16 +202,16 @@ class ArgyrisNodeCollection(object):
     Contains information about a group of nodes in an Argyris Mesh and any
     relevant edge data.
 
-    Required Arguements
-    -------------------
+    Required Arguments
+    ------------------
     * function_values : set of basis function numbers that approximate function
       values on the Argyris mesh.
     * normal_derivatives : set of the node numbers corresponding to normal
       derivative basis functions.
     * edges : set of tuples corresponding to (endpoint, endpoint, midpoint)
 
-    Optional Arguements
-    -------------------
+    Optional Arguments
+    ------------------
     * name : prefix on the output files. Defaults to 'inner'.
     """
     def __init__(self, function_values, normal_derivatives,
