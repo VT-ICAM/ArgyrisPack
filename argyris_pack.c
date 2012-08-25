@@ -3,9 +3,18 @@
 #include <math.h>
 
 /*
+ * dgemm_ appears to be more portable than dgemm (the version of BLAS with OSX
+ * and netlib blas both support this naming convention).
+ */
+#define dgemm dgemm_
+void dgemm(char*, char*, int*, int*, int*, double*, double*, int*, double*, int*,
+           double*, double*, int*);
+
+/*
  * Most of these functions are short. Include them in this order to avoid a lot
  * of hard work with header files and dependencies.
  */
+
 #include "order_logic.h"
 #include "multiply_by_diagonal.c"
 
