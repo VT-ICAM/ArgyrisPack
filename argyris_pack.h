@@ -13,6 +13,9 @@ void ap_local_hessians(double* restrict x, double* restrict y, LAPACKINDEX quad_
                        double* restrict ref_dxx, double* restrict ref_dxy,
                        double* restrict ref_dyy);
 
+void ap_global_maps(double* restrict x, double* restrict y, double* restrict C,
+                    double* restrict B, double* restrict b, double* restrict Th);
+
 void ap_global_functions(double* restrict C, double* restrict ref_values,
                          LAPACKINDEX quad_points, double* restrict values);
 
