@@ -1,4 +1,5 @@
-void ap_global_maps(double* restrict x, double* restrict C, double* restrict B,
+void ap_global_maps(double* restrict x, double* restrict y,
+                    double* restrict C, double* restrict B,
                     double* restrict b, double* restrict Th)
 {
         /* temporary values. */
@@ -11,12 +12,12 @@ void ap_global_maps(double* restrict x, double* restrict C, double* restrict B,
         double C_constant0, C_constant1, C_constant2;
 
         /* extract coordinates. */
-        x0 = x[ORDER(0, 0, 2, 3)];
-        y0 = x[ORDER(1, 0, 2, 3)];
-        x1 = x[ORDER(0, 1, 2, 3)];
-        y1 = x[ORDER(1, 1, 2, 3)];
-        x2 = x[ORDER(0, 2, 2, 3)];
-        y2 = x[ORDER(1, 2, 2, 3)];
+        x0 = x[0];
+        x1 = x[1];
+        x2 = x[2];
+        y0 = y[0];
+        y1 = y[1];
+        y2 = y[2];
 
         /* fill B. */
         B00 = -x0 + x1;
