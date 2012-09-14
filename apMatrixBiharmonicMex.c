@@ -51,12 +51,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
         if (mxGetN(prhs[6]) != mxGetN(prhs[3]) &&
             mxGetM(prhs[6]) != mxGetN(prhs[3])) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                   "Mismatch in number of weights "
                                   "and number of quadrature points.");
         }
         if (mxGetM(prhs[6]) != 1 && mxGetN(prhs[6]) != 1) {
-            mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixMassMex",
+            mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                               "The weights must be in a one-dimensional array.");
         }
 
