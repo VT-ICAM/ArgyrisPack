@@ -1,0 +1,2 @@
+Sept 15 2012 : V1.01 : Removed unnecessary .geo and the test.c file
+Sep 14 2012 : V1.0 : Finished symbolic implementation; release to public under BSD-3
