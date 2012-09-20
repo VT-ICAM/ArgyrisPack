@@ -30,12 +30,16 @@ double __d_one = 1;
          * m : number of rows of A; n : number of columns of B.T; k : number of
          * columns of A / rows of B.T. For sanity, define D, E, and F to be the
          * transposes of A, B, and C.
-         *
-         * Therefore E.T is n x k, D is k x m, and F is n x m
          */
+        /* wrap C := A.T*B; note E is n x k, D.T is k x m, and F is n x m */
+        #define DGEMM_WRAPPER_TN(m, n, k, D, E, F) \
+        dgemm(&(__c_N), &(__c_T), &(n), &(m), &(k), &(__d_one), E, &(n), D, \
+              &(m), &(__d_zero), F, &(m))
+        /* wrap C := A.T*B; note E.T is n x k, D is k x m, and F is n x m */
         #define DGEMM_WRAPPER_NT(m, n, k, D, E, F) \
         dgemm(&(__c_T), &(__c_N), &(n), &(m), &(k), &(__d_one), E, &(k), D, \
               &(k), &(__d_zero), F, &(n))
+        /* wrap C.T := A*B.T + C */
         #define DGEMM_WRAPPER_NT_ADD_C(m, n, k, D, E, F) \
         dgemm(&(__c_T), &(__c_N), &(n), &(m), &(k), &(__d_one), E, &(k), D, \
               &(k), &(__d_one), F, &(n))
@@ -45,6 +49,10 @@ double __d_one = 1;
         #define ORDER(row,col,nrows,ncols) (col)*(nrows) + (row)
         #define DGEMM_WRAPPER(m, n, k, A, B, C) \
         dgemm(&(__c_N), &(__c_N), &(m), &(n), &(k), &(__d_one), A, &(m), B, \
+              &(k), &(__d_zero), C, &(m))
+        /* wrap C := A.T*B */
+        #define DGEMM_WRAPPER_TN(m, n, k, A, B, C) \
+        dgemm(&(__c_T), &(__c_N), &(m), &(n), &(k), &(__d_one), A, &(k), B, \
               &(k), &(__d_zero), C, &(m))
         /* wrap C := A*B.T */
         #define DGEMM_WRAPPER_NT(m, n, k, A, B, C) \
