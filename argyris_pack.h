@@ -45,4 +45,5 @@ void ap_matrix_biharmonic(double* restrict C, double* restrict B,
                           double* restrict ref_dyy, double* restrict weights,
                           LAPACKINDEX quad_points, double* restrict biharmonic);
 
-#undef LAPACKINDEX
+void multiply_by_diagonal(const int rows, const int cols,
+                          double* restrict diagonal, double* restrict matrix);
