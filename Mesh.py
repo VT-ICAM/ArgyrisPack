@@ -47,22 +47,19 @@ class ArgyrisMesh(object):
 
     1. Treat the current midpoint nodes as the normal derivative basis
     functions.
-    2. For each corner of each element, see if nodes have been stacked on
-    previously. If not, use the class-scope variable _new_index to add five
-    new nodes at the current corner. Update the appropriate node container.
+    2. Extract the corner nodes as a separate array. Associate each corner node
+    with five new nodes stacked at the same location.
+    3. Update nodal coordinates and fix the element order.
 
     Required Arguments
     ------------------
-    * node_collections : list of the ArgyrisNodeCollection objects formed
-      from the quadratic mesh.
-    * original_elements : integer numpy array of the global node numbers of
-      each element in the quadratic mesh.
-    * original_nodes : 2xN numpy array of node coordinates on the quadratic
-      mesh.
+    * mesh : a parsed .mesh file (has elements, nodes, and edge_collections)
 
     Properties
     ----------
     * elements : a numpy array listing the node numbers of every element.
+    * edges_by_midpoint : a dictionary associating each element with a certain
+      edge (indexed by the normal derivative basis function number)
     * node_collections : a list of ArgyrisNodeCollection objects.
     * nodes : a numpy array of node coordinates.
 
@@ -71,48 +68,41 @@ class ArgyrisMesh(object):
     * save_files : save the mesh in a format compatible to the existing QGE
     code.
     """
-    def __init__(self, node_collections, original_elements, original_nodes):
-        self.node_collections = node_collections
-        self.elements = np.zeros((original_elements.shape[0], 21), dtype=np.int)
-        self.elements[:,0:6] = original_elements
+    def __init__(self, mesh):
+        self.elements = np.zeros((mesh.elements.shape[0], 21), dtype=np.int)
+        self.elements[:,0:6] = mesh.elements
 
         # solve a lot of orientation problems later by ensuring that the corner
         # nodes are in sorted order.
         for element in self.elements:
             self._fix_element_order(element[0:6])
 
-        # also convert the normal derivative basis functions to be in the
-        # correct order (albeit at this point they are still in the wrong
-        # column position in the array)
-        temp = self.elements[:,4].copy()
-        self.elements[:,4] = self.elements[:,5]
-        self.elements[:,5] = temp
-
         # stack new nodes.
-        n = original_elements.max() + 1
-
         self.stacked_nodes = \
-            {node_number : np.array(range(n + 5*count, n + 5*count + 5))
+            {node_number : np.array(range(mesh.elements.max() + 1 + 5*count,
+                                          mesh.elements.max() + 1 + 5*count + 5))
              for count, node_number in enumerate(np.unique(self.elements[:,0:3]))}
 
         for element in self.elements:
-                element[6:11]  = self.stacked_nodes[element[0]]
-                element[11:16] = self.stacked_nodes[element[1]]
-                element[16:21] = self.stacked_nodes[element[2]]
+            element[6:11]  = self.stacked_nodes[element[0]]
+            element[11:16] = self.stacked_nodes[element[1]]
+            element[16:21] = self.stacked_nodes[element[2]]
 
+        # update the edges by elements.
         self.edges_by_midpoint = \
             {midpoint : (element_number + 1, k) for k in range(1,4) for
              element_number, midpoint in enumerate(self.elements[:,2+k])}
 
         self._fix_argyris_node_order()
 
-        # add new nodal coordinates.
+        # set coordinates for the new nodes.
         self.nodes = np.zeros((self.elements.max(), 2))
-        self.nodes[0:len(original_nodes),:] = original_nodes
+        self.nodes[0:len(mesh.nodes),:] = mesh.nodes
         for stacked_node, new_nodes in self.stacked_nodes.items():
-            self.nodes[new_nodes - 1] = original_nodes[stacked_node - 1]
+            self.nodes[new_nodes - 1] = mesh.nodes[stacked_node - 1]
 
-        for collection in self.node_collections: collection.update(self)
+        # Construct the edge collections.
+        self._build_node_collections(mesh)
 
     def save_files(self):
         """
@@ -120,26 +110,17 @@ class ArgyrisMesh(object):
 
             nodes.txt    : all nodal coordinates
             elements.txt : the element array for Argyris
-            unodes.txt   : nodes corresponding to function values
 
-        and for each border in edge_collections with key NAME, as well as the
-        interior nodes:
+        and for each collection of nodes with key NAME:
 
-            NAME_dx.txt       : nodes approximating x-derivatives
-            NAME_dy.txt       : nodes approximating y-derivatives
-            NAME_normal.txt   : nodes approximating normal derivatives
-            NAME_function.txt : nodes approximating function values
-            NAME_all.txt      : all nodes in the collection.
+            NAME_edge_elements.txt : all edge tuples (end, end, midpoint)
+            NAME_all.txt : all numbers of nodes in the collection.
         """
-        u_nodes = np.unique(self.elements[:,0:3])
-
         np.savetxt('nodes.txt', self.nodes)
         np.savetxt('elements.txt', self.elements, fmt="%d")
-        np.savetxt('unodes.txt', u_nodes, fmt="%d")
 
-        # save the information stored in the node collections as well.
         for collection in self.node_collections:
-            collection.write_to_files()
+            collection.save_files()
 
     def _fix_element_order(self, element):
         """
@@ -162,6 +143,34 @@ class ArgyrisMesh(object):
             element[0], element[1] = element[1], element[0]
             element[4], element[5] = element[5], element[4]
 
+    def _build_node_collections(self, mesh):
+        """
+        Handle the edges by building a list of ArgyrisNodeCollection objects.
+        This is done by extracting the information regarding corner nodes and
+        midpoints from the original edge data and saving the interior nodes as
+        everything that was not a boundary node.
+        """
+        self.node_collections = []
+        interior_function_values = set(mesh.elements[:, 0:3].flatten())
+        interior_normal_derivatives = set(mesh.elements[:, 3:6].flatten())
+
+        for border_name, collection in mesh.edge_collections.items():
+            # save left points of edges.
+            function_values = {x[0] for x in collection}
+
+            normal_derivatives = {x[2] for x in collection}
+            edges = {tuple(x[0:3]) for x in collection}
+
+            self.node_collections.append(ArgyrisNodeCollection(function_values,
+                normal_derivatives, edges, self, name = border_name))
+
+            interior_function_values.difference_update(function_values)
+            interior_normal_derivatives.difference_update(normal_derivatives)
+
+        self.node_collections.append(ArgyrisNodeCollection(
+            interior_function_values, interior_normal_derivatives, [], self,
+            name = 'interior'))
+
     def _fix_argyris_node_order(self):
         """
         Fix the node orderings from the constructed format
@@ -170,15 +179,12 @@ class ArgyrisMesh(object):
 
         to the usual Argyris format of
 
-            [1 2 3 7 8 12 13 17 18 9 10 11 14 15 16 19 20 21 4 5 6].
-
-        Note that, as opposed to the usual Lagrange definition, by the point
-        this is called '4' is the midpoint of the line segment (1,2) and '5'
-        is the midpoint of the line segment (1,3).
+            [1 2 3 7 8 12 13 17 18 9 10 11 14 15 16 19 20 21 4 6 5].
         """
+
         normal_derivatives1 = self.elements[:,3].copy()
-        normal_derivatives2 = self.elements[:,4].copy()
-        normal_derivatives3 = self.elements[:,5].copy()
+        normal_derivatives2 = self.elements[:,5].copy()
+        normal_derivatives3 = self.elements[:,4].copy()
 
         first_nodes  = self.elements[:,6:11].copy()
         second_nodes = self.elements[:,11:16].copy()
@@ -209,32 +215,24 @@ class ArgyrisNodeCollection(object):
     * normal_derivatives : set of the node numbers corresponding to normal
       derivative basis functions.
     * edges : set of tuples corresponding to (endpoint, endpoint, midpoint)
+    * mesh : the relevant Argyris mesh.
 
     Optional Arguments
     ------------------
     * name : prefix on the output files. Defaults to 'inner'.
     """
     def __init__(self, function_values, normal_derivatives,
-                 edges, name = 'inner'):
+                 edges, mesh, name = 'inner'):
         self.function_values = function_values
         self.normal_derivatives = normal_derivatives
-        self._edges = edges
-
         self.name = name
 
-        self.stacked_nodes = dict()
-        self._edge_elements = list()
-
-    def update(self, mesh):
-        """
-        Update the node collection based on information from a Mesh object.
-        """
         self.stacked_nodes = {node : mesh.stacked_nodes[node] for node in
                               self.function_values}
         self._edge_elements = [mesh.edges_by_midpoint[edge[-1]] + edge
-                               for edge in self._edges]
+                               for edge in edges]
 
-    def write_to_files(self):
+    def save_files(self):
         """
         Save the data to text files; place all node numbers in the collection
         in one file and all information on edge elements in another.
@@ -243,8 +241,8 @@ class ArgyrisNodeCollection(object):
             np.savetxt(self.name + '_edge_elements.txt',
                        np.asarray(self._edge_elements, dtype=np.int), "%d")
 
-        # I used list comprehensions because they do the same thing in
-        # python2.7 and python3.*; *.values() became an iterator in python3000.
+        # Use list comprehensions because they do the same thing in python2.7
+        # and python3.*; *.values() became an iterator in python3000.
         np.savetxt(self.name + '_all.txt',
                    np.unique(np.hstack([x for x in self.stacked_nodes.values()] +
                                        [x for x in self.stacked_nodes.keys()] +
@@ -252,6 +250,7 @@ class ArgyrisNodeCollection(object):
                    "%d")
 
     def __str__(self):
+        """For interactive debugging use."""
         return ("Node collection name: " + self.name + "\n" +
         "function values:\n" + str(self.function_values) + "\n" +
         "normal derivatives:\n" + str(self.normal_derivatives) + "\n" +
