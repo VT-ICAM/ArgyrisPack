@@ -120,48 +120,19 @@ class ParseMESHFormat(object):
         if self.elements.shape[1] != 6:
             raise ValueError('requires a quadratic mesh')
 
-        node_collections = []
-        interior_function_values = set(self.elements[:, 0:3].flatten())
-        interior_normal_derivatives = set(self.elements[:, 3:6].flatten())
-
-        # build the collections of boundary nodes, then delete them from the
-        # interior node containers.
-        for border_name, collection in self.edge_collections.items():
-            # save left points of edges.
-            function_values = {x[0] for x in collection}
-
-            normal_derivatives = {x[2] for x in collection}
-            edges = {tuple(x[0:3]) for x in collection}
-
-            node_collections.append(Mesh.ArgyrisNodeCollection(function_values,
-                interior_normal_derivatives, edges, name = border_name))
-            interior_function_values.difference_update(function_values)
-            interior_normal_derivatives.difference_update(normal_derivatives)
-
-        node_collections.append(Mesh.ArgyrisNodeCollection(
-            interior_function_values, interior_normal_derivatives, [],
-            name = 'interior'))
-
-        return Mesh.ArgyrisMesh(node_collections, self.elements,
-                                self.nodes)
+        return Mesh.ArgyrisMesh(self)
 
     def save_argyris_outfiles(self):
         """
-        Convert the mesh to an Argyris mesh (requires that mesh_file be
-        quadratic) and save the following files:
+        Convert the mesh to an Argyris mesh and save the following data:
 
             nodes.txt    : all nodal coordinates
-            elements.txt : the element array for Argyris
-            unodes.txt   : nodes corresponding to function values
+            elements.txt : the element array
 
-        and for each border in edge_collections with key NAME, as well as the
-        interior nodes:
+        and for each collection of nodes with key NAME:
 
-            NAME_dx.txt       : nodes approximating x-derivatives
-            NAME_dy.txt       : nodes approximating y-derivatives
-            NAME_normal.txt   : nodes approximating normal derivatives
-            NAME_function.txt : nodes approximating function values
-            NAME_all.txt      : all nodes in the collection.
+            NAME_edge_elements.txt : all edge tuples (end, end, midpoint)
+            NAME_all.txt : all numbers of nodes in the collection.
         """
         self.argyris_representation().save_files()
 
