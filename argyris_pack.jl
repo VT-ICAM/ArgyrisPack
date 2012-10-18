@@ -24,7 +24,7 @@ function ap_local_functions{T}(x::Vector{T}, y::Vector{T})
 
     function_values = zeros(21,size(x)[1])
     ccall(__ap_local_functions, Void,
-          (Ptr{Float64}, Ptr{Float64}, Int64, Ptr{Float64}),
+          (Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}),
           x, y, length(x), function_values)
 
     return function_values
@@ -38,7 +38,7 @@ function ap_local_gradients{T}(x::Vector{T}, y::Vector{T})
     dx = zeros(21,size(x)[1])
     dy = zeros(21,size(x)[1])
     ccall(__ap_local_gradients, Void,
-          (Ptr{Float64}, Ptr{Float64}, Int64, Ptr{Float64}, Ptr{Float64}),
+          (Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}, Ptr{Float64}),
           x, y, size(x)[1], dx, dy)
 
     return dx, dy
@@ -53,7 +53,7 @@ function ap_local_hessians{T}(x::Vector{T}, y::Vector{T})
     dxy = zeros(21,size(x)[1])
     dyy = zeros(21,size(x)[1])
     ccall(__ap_local_hessians, Void,
-          (Ptr{Float64}, Ptr{Float64}, Int64, Ptr{Float64}, Ptr{Float64},
+          (Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}, Ptr{Float64},
            Ptr{Float64}),
           x, y, length(x), dxx, dxy, dyy)
 
@@ -85,7 +85,7 @@ function ap_global_functions(C, ref_values)
     check_reference_values(ref_values)
 
     function_values = zeros(21,size(ref_values)[2])
-    ccall(__ap_global_functions, Void, (Ptr{Float64}, Ptr{Float64}, Int64,
+    ccall(__ap_global_functions, Void, (Ptr{Float64}, Ptr{Float64}, Int32,
           Ptr{Float64}), C, ref_values, size(ref_values)[2],
           function_values)
 
@@ -101,7 +101,7 @@ function ap_global_gradients(C, B, ref_dx, ref_dy)
     dx = zeros(size(ref_dx))
     dy = zeros(size(ref_dx))
     ccall(__ap_global_gradients, Void,
-          (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Int64,
+          (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Int32,
            Ptr{Float64}, Ptr{Float64}),
           C, B, ref_dx, ref_dy, size(ref_dx)[2], dx, dy)
 
@@ -121,7 +121,7 @@ function ap_global_hessians(C, Th, ref_dxx, ref_dxy, ref_dyy)
     dyy = zeros(size(ref_dxx))
     ccall(__ap_global_hessians, Void,
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-           Int64, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}),
+           Int32, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}),
           C, Th, ref_dxx, ref_dxy, ref_dyy, size(ref_dxx)[2], dxx, dxy, dyy)
 
     return dxx, dxy, dyy
@@ -135,7 +135,7 @@ function ap_matrix_mass(C, B, ref_functions, weights)
 
     mass = zeros(21,21)
     ccall(__ap_matrix_mass, Void,
-          (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Int64,
+          (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Int32,
            Ptr{Float64}),
           C, B, ref_functions, weights, size(weights)[1], mass)
 
@@ -151,7 +151,7 @@ function ap_matrix_stiffness(C, B, ref_dx, ref_dy, weights)
     stiffness = zeros(21,21)
     ccall(__ap_matrix_stiffness, Void,
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-           Int64, Ptr{Float64}),
+           Int32, Ptr{Float64}),
           C, B, ref_dx, ref_dy, weights, size(weights)[1], stiffness)
 
     return stiffness
@@ -166,7 +166,7 @@ function ap_matrix_biharmonic(C, B, Th, ref_dxx, ref_dxy, ref_dyy, weights)
     biharmonic = zeros(21,21)
     ccall(__ap_matrix_biharmonic, Void,
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-           Ptr{Float64}, Ptr{Float64}, Int64, Ptr{Float64}),
+           Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}),
           C, B, Th, ref_dxx, ref_dxy, ref_dyy, weights, size(weights)[1],
           biharmonic)
 
