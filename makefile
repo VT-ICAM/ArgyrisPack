@@ -1,8 +1,8 @@
-CFLAGS=-DLAPACKINDEX=int -D$(STORAGE_ORDER) -Wall -std=c99 -fPIC
+CFLAGS=-DLAPACKINDEX=int -D$(STORAGE_ORDER) -Wall -std=c99 -fPIC -O3
 CC=/usr/bin/cc
 
 all : *.c *.h
-	$(CC) $(CFLAGS) -O3 -c argyris_pack.c
+	$(CC) $(CFLAGS) -c argyris_pack.c
 
 so : all
 	$(CC) -shared -o libargyris_pack.so argyris_pack.o -lblas -lm
