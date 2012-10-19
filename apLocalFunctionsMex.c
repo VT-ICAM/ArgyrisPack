@@ -6,36 +6,34 @@
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-        double *x, *y;
+        double *x;
+        double *y;
         double *refValues;
         mwSignedIndex quadPoints;
-        int i;
 
         /* check input. */
         if (nrhs != 2) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apLocalFunctionsMex",
-                                  "Requires two arguments.");
+                                  "Two inputs required.");
         }
-        for (i = 0; i < 2; i++) {
-                if (mxGetN(prhs[i]) != 1 && mxGetM(prhs[i]) != 1) {
-                        mexErrMsgIdAndTxt("ARGYRISPACK:apLocalFunctionsMex",
-                                          "Inputs must be vectors.");
-                }
-        }
-        if (mxGetM(prhs[0])*mxGetN(prhs[0]) != (mxGetM(prhs[1])*mxGetN(prhs[1]))) {
+        if (((mxGetM(prhs[0])) != 1) && (mxGetN(prhs[0]) != 1)) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apLocalFunctionsMex",
-                                  "Inputs must have same size.");
+                                  "Inputs must be vectors.");
+        }
+        if (((mxGetM(prhs[1])) != 1) && (mxGetN(prhs[1]) != 1)) {
+                mexErrMsgIdAndTxt("ARGYRISPACK:apLocalFunctionsMex",
+                                  "Inputs must be vectors.");
+        }
+
+        /* check output. */
+        if (nlhs != 1) {
+                mexErrMsgIdAndTxt("ARGYRISPACK:apLocalFunctionsMex",
+                                  "Requires exactly one output.");
         }
 
         x = mxGetPr(prhs[0]);
         y = mxGetPr(prhs[1]);
-        quadPoints = mxGetN(prhs[1])*mxGetM(prhs[1]);
-
-        /* check output. */
-        if (1 != nlhs) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apLocalFunctionsMex",
-                                  "Requires exactly one output.");
-        }
+        quadPoints = mxGetN(prhs[0])*mxGetM(prhs[0]);
 
         plhs[0] = mxCreateDoubleMatrix(21, quadPoints, mxREAL);
         refValues = mxGetPr(plhs[0]);

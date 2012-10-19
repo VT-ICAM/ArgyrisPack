@@ -14,15 +14,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         /* check input. */
         if (nrhs != 4) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
-                                  "Requires four arguments.");
+                                  "Four inputs required.");
         }
         if (21 != mxGetN(prhs[0]) || 21 != mxGetM(prhs[0])) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
-                                  "The C matrix must be the first arguement.");
+                                  "The C matrix must be the first argument.");
         }
         if ((2 != mxGetN(prhs[1])) || (2 != mxGetM(prhs[1]))) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
-                                  "The B matrix must be the second arguement.");
+                                  "The B matrix must be the second argument.");
         }
         if (mxGetN(prhs[2]) != mxGetN(prhs[3])) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
