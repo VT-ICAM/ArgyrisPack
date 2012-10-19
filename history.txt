@@ -1,4 +1,6 @@
-Sep 20 2012 : V1.03 : bugfix release; slight change in interface for
+Oct 19 2012 : V1.04 : bugfix release; change runMESH.py to use the included
+                      rectangle.mesh.
+Oct 18 2012 : V1.03 : bugfix release; slight change in interface for
                       construction of Argyris meshes. Includes sample mesh.
 Sep 20 2012 : V1.02 : bugfix release; also supports DGEMM_WRAPPER_TN macro.
 Sep 15 2012 : V1.01 : Removed unnecessary .geo and the test.c file
