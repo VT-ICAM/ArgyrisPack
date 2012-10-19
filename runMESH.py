@@ -5,9 +5,8 @@ import numpy as np
 from math import pi
 
 def main():
-    mesh_file = "rectangle.mesh"
-    t = ParseMESHFormat(mesh_file)
-    t.save_argyris_outfiles()
+    s = ParseMESHFormat(mesh_file, special_borders = {'ocean' : (1,2,3,4)})
+    s.save_argyris_outfiles()
 
 def lambert_azimuthal_projection(coordinate_tripples, longitude_offset = -pi/4):
     """
