@@ -95,7 +95,7 @@ class ParseMESHFormat(object):
                             0.5*(self.nodes[self.elements[:, j] - 1, i] +
                                  self.nodes[self.elements[:, k] - 1, i])
         else:
-            self.nodes = nodes
+            self.nodes = np.vstack(map(lambda x : x[0], nodes))
 
         self.edges = self._parse_section('Edges',
                                          lambda x : tuple(map(int,x.split())))
