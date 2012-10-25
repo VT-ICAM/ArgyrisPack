@@ -94,6 +94,8 @@ class ParseMESHFormat(object):
                         self.nodes[self.elements[:, j + 3] - 1, i] = \
                             0.5*(self.nodes[self.elements[:, j] - 1, i] +
                                  self.nodes[self.elements[:, k] - 1, i])
+        else:
+            self.nodes = nodes
 
         self.edges = self._parse_section('Edges',
                                          lambda x : tuple(map(int,x.split())))
