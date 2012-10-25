@@ -2,6 +2,7 @@
 import numpy as np
 import re
 import Mesh
+import pdb
 
 class ParseMESHFormat(object):
     """
@@ -25,7 +26,7 @@ class ParseMESHFormat(object):
 
           special_borders = {'open' : (1,2)}
 
-      will correlate edges on Physical Lines 1 and 2 with the 'land' edge
+      will correlate edges on Physical Lines 1 and 2 with the 'open' edge
       collection.
 
     * other_border : the default edge collection for any edges that are not in a
@@ -67,23 +68,32 @@ class ParseMESHFormat(object):
     * argyris_representation : return a ArgyrisMesh object containing
       information from the parsed .mesh file.
     """
-    def __init__(self, mesh_file, projection = lambda t : t[:,0:2],
+    def __init__(self, mesh_file, projection = None,
                  special_borders = {}, other_border = 'land'):
 
-        self.projection = projection
         self.mesh_file = mesh_file
         self.special_borders = special_borders
-
-        nodes = self._parse_section("Vertices",
-                            lambda x : (tuple(map(float, x.split()[0:-1])),
-                                        int(x.split()[-1])))
-
-        self.nodes = self.projection(np.vstack(map(lambda x : x[0], nodes)))
 
         elements = self._parse_section("Triangles",
                                        lambda x : tuple(map(int,x.split()[0:-1])))
 
         self.elements = np.vstack(elements)
+
+        nodes = self._parse_section("Vertices",
+                            lambda x : (tuple(map(float, x.split()[0:-1])),
+                                        int(x.split()[-1])))
+
+        # use the projection and then fix the midpoint nodes.
+        if projection:
+            self.nodes = projection(np.vstack(map(lambda x : x[0], nodes)))
+            if self.elements.shape[1] != 6:
+                raise TypeError("Only supports projecting quadratic meshes.")
+            else:
+                for i in range(2):
+                    for (j, k) in [(0, 1), (1, 2), (2, 0)]:
+                        self.nodes[self.elements[:, j + 3] - 1, i] = \
+                            0.5*(self.nodes[self.elements[:, j] - 1, i] +
+                                 self.nodes[self.elements[:, k] - 1, i])
 
         self.edges = self._parse_section('Edges',
                                          lambda x : tuple(map(int,x.split())))
@@ -97,6 +107,11 @@ class ParseMESHFormat(object):
 
         if other_borders: # do not update if it is empty
             self.edge_collections[other_border] = other_borders
+
+        # check if there are any extra nodes (that is, we have coordinates of a
+        # node but said node does not appear in the element connectivity array)
+        if len(self.nodes) != len(np.unique(self.elements)):
+            self._delete_unused_nodes()
 
     def mesh_representation(self):
         "Return the Mesh class representation of the object."
@@ -186,3 +201,31 @@ class ParseMESHFormat(object):
                 if found_section and found_count:
                     parsed_section.append(line_parse_function(line))
         return parsed_section
+
+    def _delete_unused_nodes(self):
+        """
+        GMSH has a bug where it saves non-mesh nodes (that is, nodes that are
+        not members of any element) to the .mesh file. Get around that issue by
+        deleting the extra nodes and renumbering accordingly.
+        """
+        number_of_mesh_nodes = len(np.unique(self.elements))
+        old_to_new = dict(zip(np.unique(self.elements),
+                              range(1, number_of_mesh_nodes + 1)))
+
+        new_to_old = {new_node : old_node
+                      for (old_node, new_node) in old_to_new.items()}
+
+        new_elements = np.array([[old_to_new[t] for t in element]
+                                  for element in self.elements])
+
+        new_nodes = np.array([self.nodes[new_to_old[new_node_number] - 1]
+                               for new_node_number in new_to_old.keys()])
+
+
+        new_edge_collections = {key : {(old_to_new[edge[0]], old_to_new[edge[1]],
+                        old_to_new[edge[2]], edge[3]) for edge in value}
+                        for (key, value) in self.edge_collections.items()}
+
+        self.edge_collections = new_edge_collections
+        self.elements = new_elements
+        self.nodes = new_nodes
