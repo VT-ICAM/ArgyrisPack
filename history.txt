@@ -1,3 +1,5 @@
+Oct 25 2012 : V1.05 : bugfix release; include a workaround to delete nodes that
+                      are not in any triangle.
 Oct 19 2012 : V1.04 : bugfix release; change runMESH.py to use the included
                       rectangle.mesh.
 Oct 18 2012 : V1.03 : bugfix release; slight change in interface for
