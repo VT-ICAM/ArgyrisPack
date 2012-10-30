@@ -1,3 +1,5 @@
+Oct 25 2012 : V1.06 : bugfix release; fixed a problem with the no-projection
+                      case.
 Oct 25 2012 : V1.05 : bugfix release; include a workaround to delete nodes that
                       are not in any triangle.
 Oct 19 2012 : V1.04 : bugfix release; change runMESH.py to use the included
