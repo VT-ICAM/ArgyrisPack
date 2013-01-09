@@ -1,8 +1,7 @@
-CFLAGS=-DLAPACKINDEX=int -D$(STORAGE_ORDER) -Wall -std=c99 -fPIC -O3
-CC=/usr/bin/cc
-
-all : *.c *.h
-	$(CC) $(CFLAGS) -c argyris_pack.c
+CFLAGS=-DLAPACKINDEX=int -D$(STORAGE_ORDER) -Wall -std=c99 -fPIC -O3 -I./ap/numerical/
+NUMERICAL_PATH=./ap/numerical/
+all : $(NUMERICAL_PATH)*.c $(NUMERICAL_PATH)*.h
+	$(CC) $(CFLAGS) -c ./ap/numerical/argyris_pack.c
 
 so : all
 	$(CC) -shared -o libargyris_pack.so argyris_pack.o -lblas -lm
