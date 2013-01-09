@@ -2,6 +2,9 @@ void ap_global_maps(double* restrict x, double* restrict y,
                     double* restrict C, double* restrict B,
                     double* restrict b, double* restrict Th)
 {
+        /* zero the C array. The others will be completely filled. */
+        memset(C, 0, sizeof(double)*21*21);
+
         /* temporary values. */
         double x0, x1, x2, y0, y1, y2;
         double B00, B01, B10, B11;

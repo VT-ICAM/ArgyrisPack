@@ -24,7 +24,6 @@ def argyris_polynomials(xs, ys):
         3 : matrix([[(xs[1] + xs[2])/2], [(ys[1] + ys[2])/2]])
     }
 
-    # I kept this as a function for debugging purposes.
     constraint_system = lambda f : [
         f.subs({x : xs[0], y : ys[0]}),
         f.subs({x : xs[1], y : ys[1]}),
