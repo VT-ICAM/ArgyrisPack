@@ -1,34 +1,141 @@
 #! /usr/bin/env python
-
 import numpy as np
+from collections import namedtuple
+import meshtools
+import parsers
+
+def mesh_factory(*args, **kwargs):
+    """
+    Parse a finite element mesh representation and then convert it to a
+    Mesh or ArgyrisMesh object.
+
+    Required Arguments
+    ------------------
+    * mesh_files      : text files comprising the finite element mesh.
+
+    Keyword Arguments
+    -----------------
+    * argyris        : boolean to specify if the mesh should have
+                       additional nodes added to transform it in to an
+                       Argyris mesh. Defaults to False.
+
+    * order          : Mesh element order. The nodes will be renumbered
+                       appropriately (1 for linears, 2 for quadratics).
+                       Defaults to None. This is not implemented yet.
+
+    * projection     : function that projects nodes. Defaults to None
+                       (no projection)
+
+    * borders        : a dictionary correlating names with GMSH 'Physical
+      Line' attributes. For example,
+
+          borders = {'open' : (1,2)}
+
+      will correlate edges on Physical Lines 1 and 2 with the 'open' edge
+      collection.
+
+    * default_border : the default edge collection for any edges that
+                       are not in a special_border collection. Defaults
+                       to 'land'.
+    """
+    parsed_mesh = parsers.parser_factory(*args)
+    if kwargs.has_key('argyris'):
+        keywords = kwargs.copy()
+        del keywords['argyris']
+        return ArgyrisMesh(parsed_mesh, keywords)
+    elif kwargs.has_key('Argyris'):
+        keywords = kwargs.copy()
+        del keywords['Argyris']
+        return ArgyrisMesh(parsed_mesh, keywords)
+    else:
+        return Mesh(parsed_mesh, **kwargs)
 
 class Mesh(object):
     """
-    Representation of a finite element mesh. Essentially a struct.
+    Representation of a finite element mesh.
 
-    Required Arguments and Properties
-    ---------------------------------
-    * elements : integer numpy array of the global node numbers of each
-      element.
-    * nodes : double precision numpy array of global node coordinates.
-    * node_collections : a dictionary correlating names with node numbers.
+    Required Arguments
+    ------------------
+    * parsed_mesh : a MeshParser object (has fields elements, nodes, and
+      edge_collections)
+
+    Optional Arguments
+    ------------------
+    * borders        : A dictionary correlating names with a tuple of
+      GMSH physical line numbers. for example:
+
+          borders = {'no_flow' : (1,2,3), 'coast' : (4,5,6)}
+
+    * default_border : the name corresponding to the default edge
+      collection. Defaults to "land".
+
+    * projection     : function for transforming nodes (say from 3D to
+      2D); for example,
+
+          projection = lambda x : x[0:2]
+
+      will project the nodes down to the XY plane. Defaults to the
+      identity function.
 
     Properties
     ----------
-    * interior_nodes : an array of the node numbers correlated with the
-      'interior' node collection.
-    """
-    def __init__(self, elements, nodes, node_collections):
-        self.elements = elements
-        self.nodes = nodes
-        self.node_collections = node_collections
+    * elements         : element connectivity matrix.
 
-        # for convenience in enforcing homogeneous boundary conditions label
-        # the interior nodes.
-        self.interior_nodes = np.fromiter(
-            node_collections['interior'].__iter__(),
-            count = len(node_collections['interior']),
-            dtype=np.int)
+    * nodes            : coordinates of nodes.
+
+    * edge_collections : a dictionary relating the border names to the
+      edge tuples that fall along that border. If possible, the last
+      number in the tuple is the geometrical item number that the edge
+      falls upon from GMSH. Otherwise it is -1. For example,
+
+        print(t.edge_collections)
+        => {'land': set([(3, 4, 7, 3), (4, 1, 8, 4), (2, 3, 6, 2),
+            (1, 2, 5, 1)])}
+
+    * boundary_nodes   : Set containing the node numbers of nodes on the
+                         boundary.
+
+    * interior_nodes   : Set containing the node numbers of nodes in the
+                         interior.
+
+    Methods
+    -------
+    * estimate_nnz()   : Calculate the number of nonzero entries in a
+                         typical finite element matrix (e.g. stiffness
+                         matrix) based on the total number of inner
+                         products.
+
+    * savetxt()        : TODO
+    """
+    def __init__(self, parsed_mesh, borders=dict(), default_border="land",
+                 projection=lambda x : x):
+        self.elements = parsed_mesh.elements
+
+        self.nodes = meshtools.project_nodes(projection, parsed_mesh.elements,
+                                             parsed_mesh.nodes)
+
+        self.edge_collections = \
+            meshtools.organize_edges(parsed_mesh.edges, borders=borders,
+                                     default_border=default_border)
+
+        if len(self.edge_collections) == 0 or \
+           max(map(len, self.edge_collections.values())) == 0:
+            self.edge_collections = \
+                {default_border :
+                 set(meshtools.extract_boundary_edges(self.elements))}
+
+        if len(np.unique(self.elements)) != self.nodes.shape[0]:
+            self._remove_unused_nodes()
+
+        self.boundary_nodes = {}
+        interior_nodes = set(range(1, len(self.nodes)+1))
+        for name, edge_collection in self.edge_collections.items():
+            self.boundary_nodes[name] = \
+                np.fromiter(set(node for edge in edge_collection
+                                for node in edge[0:-1]), int)
+            interior_nodes -= set(self.boundary_nodes[name])
+
+        self.interior_nodes = np.fromiter(interior_nodes, int)
 
     def estimate_nnz(self):
         """
@@ -38,9 +145,48 @@ class Mesh(object):
         """
         return self.elements.shape[1]**2 * self.elements.shape[0]
 
+    def savetxt(self, prefix=""):
+        if prefix:
+            prefix += "_"
+        np.savetxt(prefix + "nodes.txt", self.nodes)
+        np.savetxt(prefix + "elements.txt", self.elements, fmt="%d")
+        np.savetxt(prefix + "interior_nodes.txt", self.interior_nodes, fmt="%d")
+
+        for name, collection in self.edge_collections.items():
+            np.savetxt(name + '_edges.txt', [t for t in collection], fmt='%d')
+
+    def _fix_unused_nodes(self):
+        """
+        GMSH has a bug where it saves non-mesh nodes (that is, nodes that
+        are not members of any element) to some files. Get around that
+        issue by deleting the extra nodes and renumbering accordingly.
+        """
+        number_of_mesh_nodes = len(np.unique(self.elements))
+        old_to_new = dict(zip(np.unique(self.elements),
+                              range(1, number_of_mesh_nodes + 1)))
+
+        new_to_old = {new_node : old_node
+                      for (old_node, new_node) in old_to_new.items()}
+
+        new_elements = np.array([[old_to_new[t] for t in element]
+                                  for element in self.elements])
+
+        new_nodes = np.array([self.nodes[new_to_old[new_node_number] - 1]
+                              for new_node_number in new_to_old.keys()])
+
+        new_edge_collections = {key : {(old_to_new[edge[0]], old_to_new[edge[1]],
+                        old_to_new[edge[2]], edge[3]) for edge in value}
+                        for (key, value) in self.edge_collections.items()}
+
+        self.edge_collections = new_edge_collections
+        self.elements = new_elements
+        self.nodes = new_nodes
+
+ArgyrisEdge = namedtuple('ArgyrisEdge', ['element_number', 'edge_type', 'edge'])
+
 class ArgyrisMesh(object):
     """
-    Class to build an Argyris mesh from a quadratic mesh. Can handle a mesh
+    Class to build an Argyris mesh from a parsed mesh. Can handle a mesh
     with multiple boundary conditions.
 
     The algorithm is as follows:
@@ -53,7 +199,7 @@ class ArgyrisMesh(object):
 
     Required Arguments
     ------------------
-    * mesh : a parsed .mesh file (has elements, nodes, and edge_collections)
+    * mesh : a parsed mesh (inherits from the MeshParser class)
 
     Properties
     ----------
@@ -65,22 +211,37 @@ class ArgyrisMesh(object):
 
     Methods
     -------
-    * save_files : save the mesh in a format compatible to the existing QGE
-    code.
+    * savetxt: save the mesh in multiple text files.
     """
-    def __init__(self, mesh):
-        self.elements = np.zeros((mesh.elements.shape[0], 21), dtype=np.int)
-        self.elements[:,0:6] = mesh.elements
+    def __init__(self, parsed_mesh, borders=dict(), default_border="land",
+                 projection=lambda x : x):
+        if parsed_mesh.elements.shape[1] != 6:
+            raise NotImplementedError("Support for changing mesh order is not "
+                                      + "implemented.")
+            # parsed_mesh = meshtools.change_order(parsed_mesh, 2)
+
+        lagrange_mesh = Mesh(parsed_mesh, borders=borders,
+                             default_border=default_border, projection=projection)
+
+        # if not projected, try to flatten as a last resort.
+        if (lagrange_mesh.nodes.shape[1] == 3 and
+            np.all(lagrange_mesh.nodes[:,2] == lagrange_mesh.nodes[0,2])):
+            lagrange_mesh.nodes = lagrange_mesh.nodes[:,0:2]
+        else:
+            raise ValueError("Requires a 2D mesh; try a different projection.")
+
+        self.elements = np.zeros((parsed_mesh.elements.shape[0],21), dtype=np.int)
+        self.elements[:,0:6] = lagrange_mesh.elements
 
         # solve a lot of orientation problems later by ensuring that the corner
         # nodes are in sorted order.
         for element in self.elements:
-            self._fix_element_order(element[0:6])
+            self._sort_corners_increasing(element[0:6])
 
-        # stack new nodes.
+        # stack the extra basis function nodes on the corners.
         self.stacked_nodes = \
-            {node_number : np.array(range(mesh.elements.max() + 1 + 5*count,
-                                          mesh.elements.max() + 1 + 5*count + 5))
+            {node_number : np.array(range(parsed_mesh.elements.max() + 1 + 5*count,
+                                          parsed_mesh.elements.max() + 1 + 5*count + 5))
              for count, node_number in enumerate(np.unique(self.elements[:,0:3]))}
 
         for element in self.elements:
@@ -88,41 +249,52 @@ class ArgyrisMesh(object):
             element[11:16] = self.stacked_nodes[element[1]]
             element[16:21] = self.stacked_nodes[element[2]]
 
-        # update the edges by elements.
-        self.edges_by_midpoint = \
-            {midpoint : (element_number + 1, k) for k in range(1,4) for
-             element_number, midpoint in enumerate(self.elements[:,2+k])}
-
         self._fix_argyris_node_order()
+
+        # update the edges by elements.
+        self.edges_by_midpoint = dict()
+        edge_type_to_nodes = {1 : (0,1,18), 2 : (0,2,19), 3 : (1,2,20)}
+        for element_number, element in enumerate(self.elements):
+            for edge_type in range(1,4):
+                (i,j,k) = edge_type_to_nodes[edge_type]
+                edge = ArgyrisEdge(element_number = element_number + 1,
+                                   edge_type = edge_type,
+                                   edge = (element[i], element[j], element[k]))
+                if self.edges_by_midpoint.has_key(element[17 + edge_type]):
+                    if (self.edges_by_midpoint[element[17 + edge_type]].edge
+                        != edge.edge):
+                        raise ValueError("Mesh is not consistent")
+                else:
+                    self.edges_by_midpoint[element[17 + edge_type]] = edge
 
         # set coordinates for the new nodes.
         self.nodes = np.zeros((self.elements.max(), 2))
-        self.nodes[0:len(mesh.nodes),:] = mesh.nodes
+        self.nodes[0:lagrange_mesh.nodes.shape[0],:] = lagrange_mesh.nodes
         for stacked_node, new_nodes in self.stacked_nodes.items():
-            self.nodes[new_nodes - 1] = mesh.nodes[stacked_node - 1]
+            self.nodes[new_nodes - 1] = self.nodes[stacked_node - 1]
 
         # Construct the edge collections.
-        self._build_node_collections(mesh)
+        self._build_node_collections(lagrange_mesh)
 
-    def save_files(self):
+    def savetxt(self):
         """
-        Save the following data for compatibility with the QGE code:
+        Save the following text files:
 
-            nodes.txt    : all nodal coordinates
-            elements.txt : the element array for Argyris
+            nodes.txt    : nodal coordinates
+            elements.txt : element connectivity matrix
 
         and for each collection of nodes with key NAME:
 
-            NAME_edge_elements.txt : all edge tuples (end, end, midpoint)
+            NAME_edges.txt : all edge tuples (end, end, midpoint)
             NAME_all.txt : all numbers of nodes in the collection.
         """
         np.savetxt('nodes.txt', self.nodes)
         np.savetxt('elements.txt', self.elements, fmt="%d")
 
         for collection in self.node_collections:
-            collection.save_files()
+            collection.savetxt()
 
-    def _fix_element_order(self, element):
+    def _sort_corners_increasing(self, element):
         """
         Ensure that the corners of the input quadratic element are in increasing
         order. For example, convert
@@ -143,26 +315,24 @@ class ArgyrisMesh(object):
             element[0], element[1] = element[1], element[0]
             element[4], element[5] = element[5], element[4]
 
-    def _build_node_collections(self, mesh):
+    def _build_node_collections(self, lagrange_mesh):
         """
-        Handle the edges by building a list of ArgyrisNodeCollection objects.
-        This is done by extracting the information regarding corner nodes and
-        midpoints from the original edge data and saving the interior nodes as
-        everything that was not a boundary node.
+        Handle the edges by building a list of ArgyrisNodeCollection
+        objects. This is done by extracting the information regarding
+        corner nodes and midpoints from the lagrange edge data and saving
+        the interior nodes as everything that was not a boundary node.
         """
         self.node_collections = []
-        interior_function_values = set(mesh.elements[:, 0:3].flatten())
-        interior_normal_derivatives = set(mesh.elements[:, 3:6].flatten())
+        interior_function_values = set(lagrange_mesh.elements[:, 0:3].flatten())
+        interior_normal_derivatives = set(lagrange_mesh.elements[:, 3:6].flatten())
 
-        for border_name, collection in mesh.edge_collections.items():
+        for border_name, collection in lagrange_mesh.edge_collections.items():
             # save left points of edges.
             function_values = {x[0] for x in collection}
-
             normal_derivatives = {x[2] for x in collection}
-            edges = {tuple(x[0:3]) for x in collection}
 
             self.node_collections.append(ArgyrisNodeCollection(function_values,
-                normal_derivatives, edges, self, name = border_name))
+                normal_derivatives, collection, self, name = border_name))
 
             interior_function_values.difference_update(function_values)
             interior_normal_derivatives.difference_update(normal_derivatives)
@@ -229,17 +399,19 @@ class ArgyrisNodeCollection(object):
 
         self.stacked_nodes = {node : mesh.stacked_nodes[node] for node in
                               self.function_values}
-        self._edge_elements = [mesh.edges_by_midpoint[edge[-1]] + edge
-                               for edge in edges]
 
-    def save_files(self):
+        self.edges = [mesh.edges_by_midpoint[edge[-2]] for edge in edges]
+
+    def savetxt(self):
         """
         Save the data to text files; place all node numbers in the collection
-        in one file and all information on edge elements in another.
+        in one file and all information on edges in another.
         """
-        if self._edge_elements: # don't save if there are no edge elements.
-            np.savetxt(self.name + '_edge_elements.txt',
-                       np.asarray(self._edge_elements, dtype=np.int), "%d")
+        if self.edges: # don't save if there are no edges.
+            edge_array = np.array([[edge.element_number, edge.edge_type,
+                                    edge.edge[0], edge.edge[1], edge.edge[2]]
+                for edge in self.edges])
+            np.savetxt(self.name + '_edges.txt', edge_array, "%d")
 
         # Use list comprehensions because they do the same thing in python2.7
         # and python3.*; *.values() became an iterator in python3000.
@@ -254,4 +426,4 @@ class ArgyrisNodeCollection(object):
         return ("Node collection name: " + self.name + "\n" +
         "function values:\n" + str(self.function_values) + "\n" +
         "normal derivatives:\n" + str(self.normal_derivatives) + "\n" +
-        "edge elements:\n" + str(self._edge_elements))
+        "edges:\n" + str(self._edge_elements))
