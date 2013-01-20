@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 #include "mex.h"
 
 #include "order_logic.h"
