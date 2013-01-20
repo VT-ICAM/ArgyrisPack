@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 import numpy as np
 import re
-import meshtools
+import ap.mesh.meshtools
 
 def parser_factory(*args):
     """

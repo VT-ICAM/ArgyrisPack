@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 import numpy as np
 from collections import namedtuple
-import meshtools
-import parsers
+import ap.mesh.meshtools as meshtools
+import ap.mesh.parsers as parsers
 
 def mesh_factory(*args, **kwargs):
     """
@@ -39,14 +39,14 @@ def mesh_factory(*args, **kwargs):
                        to 'land'.
     """
     parsed_mesh = parsers.parser_factory(*args)
-    if kwargs.has_key('argyris'):
+    if 'argyris' in kwargs:
         keywords = kwargs.copy()
         del keywords['argyris']
-        return ArgyrisMesh(parsed_mesh, keywords)
-    elif kwargs.has_key('Argyris'):
+        return ArgyrisMesh(parsed_mesh, **keywords)
+    elif 'Argyris' in kwargs:
         keywords = kwargs.copy()
         del keywords['Argyris']
-        return ArgyrisMesh(parsed_mesh, keywords)
+        return ArgyrisMesh(parsed_mesh, **keywords)
     else:
         return Mesh(parsed_mesh, **kwargs)
 
@@ -56,8 +56,8 @@ class Mesh(object):
 
     Required Arguments
     ------------------
-    * parsed_mesh : a MeshParser object (has fields elements, nodes, and
-      edge_collections)
+    * parsed_mesh : Something that has the same interface as a MeshParser
+                    (has fields elements, nodes, and edge_collections)
 
     Optional Arguments
     ------------------
@@ -100,12 +100,13 @@ class Mesh(object):
 
     Methods
     -------
-    * estimate_nnz()   : Calculate the number of nonzero entries in a
-                         typical finite element matrix (e.g. stiffness
-                         matrix) based on the total number of inner
-                         products.
+    * get_nnz()   : Calculate the number of nonzero entries in a typical
+                    finite element matrix (e.g. stiffness matrix) based
+                    on the total number of inner products. This will be
+                    exactly the value of the length of one of the
+                    tripplet-form vectors.
 
-    * savetxt()        : TODO
+    * savetxt()   : TODO
     """
     def __init__(self, parsed_mesh, borders=dict(), default_border="land",
                  projection=lambda x : x):
@@ -137,7 +138,7 @@ class Mesh(object):
 
         self.interior_nodes = np.fromiter(interior_nodes, int)
 
-    def estimate_nnz(self):
+    def get_nnz(self):
         """
         Estimate the number of nonzero entries present in some IJV-format
         sparse matrix constructed from inner products on this collection of
@@ -151,6 +152,7 @@ class Mesh(object):
         np.savetxt(prefix + "nodes.txt", self.nodes)
         np.savetxt(prefix + "elements.txt", self.elements, fmt="%d")
         np.savetxt(prefix + "interior_nodes.txt", self.interior_nodes, fmt="%d")
+        np.savetxt(prefix + "boundary_nodes.txt", self.boundary_nodes, fmt="%d")
 
         for name, collection in self.edge_collections.items():
             np.savetxt(name + '_edges.txt', [t for t in collection], fmt='%d')
@@ -260,7 +262,7 @@ class ArgyrisMesh(object):
                 edge = ArgyrisEdge(element_number = element_number + 1,
                                    edge_type = edge_type,
                                    edge = (element[i], element[j], element[k]))
-                if self.edges_by_midpoint.has_key(element[17 + edge_type]):
+                if element[17 + edge_type] in self.edges_by_midpoint:
                     if (self.edges_by_midpoint[element[17 + edge_type]].edge
                         != edge.edge):
                         raise ValueError("Mesh is not consistent")
@@ -402,20 +404,22 @@ class ArgyrisNodeCollection(object):
 
         self.edges = [mesh.edges_by_midpoint[edge[-2]] for edge in edges]
 
-    def savetxt(self):
+    def savetxt(self, prefix = ""):
         """
         Save the data to text files; place all node numbers in the collection
         in one file and all information on edges in another.
         """
+        if prefix:
+            prefix += "_"
         if self.edges: # don't save if there are no edges.
             edge_array = np.array([[edge.element_number, edge.edge_type,
                                     edge.edge[0], edge.edge[1], edge.edge[2]]
                 for edge in self.edges])
-            np.savetxt(self.name + '_edges.txt', edge_array, "%d")
+            np.savetxt(prefix + self.name + "_edges.txt", edge_array, "%d")
 
         # Use list comprehensions because they do the same thing in python2.7
         # and python3.*; *.values() became an iterator in python3000.
-        np.savetxt(self.name + '_all.txt',
+        np.savetxt(prefix + self.name + "_all.txt",
                    np.unique(np.hstack([x for x in self.stacked_nodes.values()] +
                                        [x for x in self.stacked_nodes.keys()] +
                                        [x for x in self.normal_derivatives])),
