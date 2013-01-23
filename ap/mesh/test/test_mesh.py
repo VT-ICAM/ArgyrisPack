@@ -1,16 +1,17 @@
 #! /usr/bin/env python
 import os
 import sys
+from functools import reduce
 import numpy as np
 import numpy.testing as npt
 import ap.mesh.parsers as parsers
 import ap.mesh.meshtools as meshtools
 import ap.mesh.meshes as meshes
 
-class TestMeshCase(object):
+class TestMeshParser(object):
     def __init__(self, nodes, elements, edges, mesh_files):
         """
-        Test case for a Lagrange mesh. Tries to test an Argyris mesh.
+        Test case for a parsed mesh. Tries to test an Argyris mesh.
         """
         for mesh_file in mesh_files:
             self.nodes = nodes
@@ -22,6 +23,37 @@ class TestMeshCase(object):
             npt.assert_equal(self.elements, parsed_mesh.elements)
             if parsed_mesh.edges:
                 assert self.edges == parsed_mesh.edges
+
+            npt.assert_almost_equal(meshtools.project_nodes(lambda x : x[0:2],
+                                                     self.elements, self.nodes),
+                             self.nodes[:,0:2], decimal=10)
+
+            if parsed_mesh.edges:
+                assert set(map(lambda x : x[0:-1], self.edges)) == \
+                       set(map(lambda x : x[0:-1],
+                           meshtools.extract_boundary_edges(self.elements)))
+
+            # Test Argyris stuff.
+            if self.elements.shape[1] == 6:
+                TestArgyrisCase(mesh_file, parsed_mesh)
+
+class TestLagrangeMesh(object):
+    def __init__(self, nodes, elements, edges, mesh_files):
+        """
+        Test case for a Lagrange mesh. Tries to test an Argyris mesh.
+        """
+        for mesh_file in mesh_files:
+            self.nodes = nodes
+            self.elements = elements
+            self.edges = edges
+            mesh = meshes.mesh_factory(*mesh_file)
+            parsed_mesh = parsers.parser_factory(*mesh_file)
+
+            npt.assert_equal(self.nodes, mesh.nodes)
+            npt.assert_equal(self.elements, mesh.elements)
+            if parsed_mesh.edges:
+                assert set(self.edges) == reduce(lambda a, b : a + b,
+                                                 mesh.edge_collections.values())
 
             npt.assert_almost_equal(meshtools.project_nodes(lambda x : x[0:2],
                                                      self.elements, self.nodes),
@@ -87,15 +119,22 @@ class TestArgyrisCase(object):
 original_directory = os.getcwd()
 os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
 try:
-
-    TestMeshCase(np.array([[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0.5,0.5,0]]),
+    TestMeshParser(np.array([[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0.5,0.5,0]]),
                    np.array([[1,2,5],[2,3,5],[3,4,5],[4,1,5]]),
                    [(1,2,1),(2,3,2),(3,4,3),(4,1,4)],
                    [["linears1.mesh"], ["linears1_nodes.txt",
                                         "linears1_elements.txt"],
                     ["linears1_elements.txt", "linears1_nodes.txt"]])
 
-    TestMeshCase(np.array([[0.000000, 0.000000], [0.000000, 0.000000],
+    # case for extra nodes
+    TestLagrangeMesh(np.array([[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0.5,0.5,0]]),
+                   np.array([[1,2,5],[2,3,5],[3,4,5],[4,1,5]]),
+                   [(1,2,1),(2,3,2),(3,4,3),(4,1,4)],
+                   [["linears1_shifted.mesh"], ["linears1_nodes_shifted.txt",
+                                        "linears1_elements_shifted.txt"],
+                    ["linears1_elements_shifted.txt", "linears1_nodes_shifted.txt"]])
+
+    TestMeshParser(np.array([[0.000000, 0.000000], [0.000000, 0.000000],
      [0.500000, 0.000000], [0.500000, 0.000000], [0.000000, 0.000000],
      [1.000000, 0.000000], [0.500000, 0.500000], [0.000000, 1.000000],
      [0.000000, 0.000000], [0.000000, 1.500000], [0.000000, 0.500000],
@@ -137,7 +176,7 @@ try:
      [52, 45, 44], [36, 37, 45], [35, 44, 37], [45, 37, 44], [14, 27, 26],
      [35, 37, 27], [36, 26, 37], [27, 37, 26]]), [], [["ell.mesh"]])
 
-    TestMeshCase(np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+    TestMeshParser(np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
      [0.33333333333261, 0, 0], [0.6666666666659, 0, 0], [0.16666666666638, 0, 0],
      [0.49999999999879, 0, 0], [0.83333333333295, 0, 0], [1, 0.33333333333261, 0],
      [1, 0.6666666666659, 0], [1, 0.16666666666638, 0], [1, 0.49999999999879, 0],

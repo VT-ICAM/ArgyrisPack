@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import random
 import numpy as np
 from collections import namedtuple
 import ap.mesh.meshtools as meshtools
@@ -126,7 +127,7 @@ class Mesh(object):
                  set(meshtools.extract_boundary_edges(self.elements))}
 
         if len(np.unique(self.elements)) != self.nodes.shape[0]:
-            self._remove_unused_nodes()
+            self._fix_unused_nodes()
 
         self.boundary_nodes = {}
         interior_nodes = set(range(1, len(self.nodes)+1))
@@ -155,7 +156,8 @@ class Mesh(object):
         np.savetxt(prefix + "boundary_nodes.txt", self.boundary_nodes, fmt="%d")
 
         for name, collection in self.edge_collections.items():
-            np.savetxt(name + '_edges.txt', [t for t in collection], fmt='%d')
+            np.savetxt(prefix + name + '_edges.txt', [t for t in collection],
+                       fmt='%d')
 
     def _fix_unused_nodes(self):
         """
@@ -169,16 +171,30 @@ class Mesh(object):
 
         new_to_old = {new_node : old_node
                       for (old_node, new_node) in old_to_new.items()}
-
-        new_elements = np.array([[old_to_new[t] for t in element]
+        new_elements = np.array([[old_to_new[node] for node in element]
                                   for element in self.elements])
-
         new_nodes = np.array([self.nodes[new_to_old[new_node_number] - 1]
                               for new_node_number in new_to_old.keys()])
 
-        new_edge_collections = {key : {(old_to_new[edge[0]], old_to_new[edge[1]],
-                        old_to_new[edge[2]], edge[3]) for edge in value}
-                        for (key, value) in self.edge_collections.items()}
+        try:
+            edge_size = {3 : 2, 6 : 3, 10 : 4, 15 : 5}[self.elements.shape[1]]
+        except KeyError:
+            raise ValueError("Unsupported mesh type")
+        new_edge_collections = dict()
+        for key, collection in self.edge_collections.items():
+            new_edge_collections[key] = set()
+            for edge in collection:
+                # geometrical information available
+                if len(edge) == edge_size + 1:
+                    new_edge_collections[key].add(tuple([old_to_new[node]
+                        for node in edge[0:-1]] + [edge[-1]]))
+                # geometrical information not available
+                elif len(edge) == edge_size:
+                    new_edge_collections[key].add(tuple([old_to_new[node]
+                        for node in edge]))
+                else:
+                    raise ValueError("Mismatch between size of mesh and" +
+                                     " size of edges")
 
         self.edge_collections = new_edge_collections
         self.elements = new_elements
