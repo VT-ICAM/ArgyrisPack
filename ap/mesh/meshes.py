@@ -245,7 +245,8 @@ class ArgyrisMesh(object):
         if (lagrange_mesh.nodes.shape[1] == 3 and
             np.all(lagrange_mesh.nodes[:,2] == lagrange_mesh.nodes[0,2])):
             lagrange_mesh.nodes = lagrange_mesh.nodes[:,0:2]
-        else:
+
+        if lagrange_mesh.nodes.shape[1] != 2:
             raise ValueError("Requires a 2D mesh; try a different projection.")
 
         self.elements = np.zeros((parsed_mesh.elements.shape[0],21), dtype=np.int)
