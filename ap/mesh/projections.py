@@ -2,7 +2,7 @@
 import numpy as np
 from math import pi
 
-def lambert_azimuthal(coordinate_tripples, longitude_offset = -pi/4):
+def lambert_azimuthal(coordinate_tripples, longitude_offset = pi/8):
     """
     An area-preserving projection from geophysical coordinates to the
     plane.
@@ -22,9 +22,9 @@ def lambert_azimuthal(coordinate_tripples, longitude_offset = -pi/4):
     * the Lambert Azimuthal projection (not scaled) of the
     coordinate_tripples.
     """
-    x = coordinate_tripples[:,0]
-    y = coordinate_tripples[:,1]
-    z = coordinate_tripples[:,2]
+    x = coordinate_tripples[0]
+    y = coordinate_tripples[1]
+    z = coordinate_tripples[2]
     # convert to latitude / longitude coordinates.
     rho = np.sqrt(x**2) + np.sqrt(y**2) + np.sqrt(z**2)
     azimuth = np.arctan2(y,x)                    # same as longitude
@@ -36,5 +36,4 @@ def lambert_azimuthal(coordinate_tripples, longitude_offset = -pi/4):
     x_projected = (k*np.cos(inclination)*np.sin(azimuth - longitude_offset))
     y_projected = (k*np.sin(inclination))
 
-    return np.hstack((x_projected.reshape((len(x),1)),
-                      y_projected.reshape((len(x),1))))
+    return np.array([x_projected, y_projected])
