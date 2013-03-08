@@ -1,6 +1,10 @@
-/* Note that LAPACKINDEX is not 'int' only for building MEX files. */
+/* LAPACKINDEX and MWINDEX are not 'int' only for MEX files */
 #ifndef LAPACKINDEX
 #define LAPACKINDEX int
+#endif
+
+#ifndef MWINDEX
+#define MWINDEX int
 #endif
 
 void ap_local_functions(double* restrict x, double* restrict y, LAPACKINDEX quad_points,
