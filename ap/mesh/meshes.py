@@ -120,8 +120,7 @@ class Mesh(object):
             meshtools.organize_edges(parsed_mesh.edges, borders=borders,
                                      default_border=default_border)
 
-        if len(self.edge_collections) == 0 or \
-           max(map(len, self.edge_collections.values())) == 0:
+        if max(map(len, self.edge_collections.values())) == 0:
             self.edge_collections = \
                 {default_border :
                  set(meshtools.extract_boundary_edges(self.elements))}
