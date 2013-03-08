@@ -1,17 +1,20 @@
 #! /usr/bin/env python
-
 import operator as op
 import numpy as np
 from sage.all import *
 
 class InterpolatedBasisFunctions(SageObject):
     """
-    Class for the
+    Given corners, calculate the Argyris basis elements on the triangle and its
+    derivatives.
     """
     def __init__(self, xs, ys):
         var('x, y')
         xs = map(Rational, xs)
         ys = map(Rational, ys)
+        if len(xs) != 3 or len(ys) != 3:
+            raise ValueError("List of corners must have three entries.")
+
 
         self.corners = zip(xs, ys)
         self.polynomials = argyris_polynomials(xs, ys)
