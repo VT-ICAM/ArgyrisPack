@@ -101,13 +101,20 @@ class Mesh(object):
 
     Methods
     -------
-    * get_nnz()   : Calculate the number of nonzero entries in a typical
-                    finite element matrix (e.g. stiffness matrix) based
-                    on the total number of inner products. This will be
-                    exactly the value of the length of one of the
-                    tripplet-form vectors.
+    * get_nnz() : Calculate the number of nonzero entries in a typical
+                  finite element matrix (e.g. stiffness matrix) based on
+                  the total number of inner products. This will be
+                  exactly the value of the length of one of the
+                  tripplet-form vectors.
 
-    * savetxt()   : TODO
+    * savetxt(prefix="") : Save the mesh as text files
+      1. prefix + nodes.txt
+      2. prefix + elements.txt
+      3. prefix + interior_nodes.txt
+      4. prefix + boundary_nodes.txt
+
+      and, additionally, for each edge collection save
+      prefix + name + _edges.txt.
     """
     def __init__(self, parsed_mesh, borders=dict(), default_border="land",
                  projection=lambda x : x):
@@ -257,9 +264,10 @@ class ArgyrisMesh(object):
             self._sort_corners_increasing(element[0:6])
 
         # stack the extra basis function nodes on the corners.
+        max_lagrange_mesh = parsed_mesh.elements.max() + 1;
         self.stacked_nodes = \
-            {node_number : np.array(range(parsed_mesh.elements.max() + 1 + 5*count,
-                                          parsed_mesh.elements.max() + 1 + 5*count + 5))
+            {node_number : np.arange(max_lagrange_mesh + 5*count,
+                                     max_lagrange_mesh + 5*count + 5)
              for count, node_number in enumerate(np.unique(self.elements[:,0:3]))}
 
         for element in self.elements:
