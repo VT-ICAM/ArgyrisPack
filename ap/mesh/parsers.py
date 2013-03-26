@@ -8,7 +8,6 @@ def parser_factory(*args):
     Instantiate the right parser based on input. See MeshParser for
     arguments.
     """
-    print(re.search(r"\.mesh\s*$", args[0]))
     if re.search(r"\.mesh\s*$", args[0]):
         parser = ParseMESHFormat(args[0])
     elif re.search(r"\.msh\s*$", args[0]):
