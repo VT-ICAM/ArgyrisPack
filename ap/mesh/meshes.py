@@ -302,7 +302,7 @@ class ArgyrisMesh(object):
         # Construct the edge collections.
         self._build_node_collections(lagrange_mesh)
 
-    def savetxt(self):
+    def savetxt(self, prefix=""):
         """
         Save the following text files:
 
@@ -314,11 +314,14 @@ class ArgyrisMesh(object):
             NAME_edges.txt : all edge tuples (end, end, midpoint)
             NAME_all.txt : all numbers of nodes in the collection.
         """
-        np.savetxt('nodes.txt', self.nodes)
-        np.savetxt('elements.txt', self.elements, fmt="%d")
+        if prefix:
+            prefix += "_"
+        np.savetxt(prefix + 'nodes.txt', self.nodes)
+        np.savetxt(prefix + 'elements.txt', self.elements, fmt="%d")
 
         for collection in self.node_collections:
-            collection.savetxt()
+            prefix = prefix[0:-1]
+            collection.savetxt(prefix)
 
     def _sort_corners_increasing(self, element):
         """
