@@ -8,11 +8,12 @@ def parser_factory(*args):
     Instantiate the right parser based on input. See MeshParser for
     arguments.
     """
-    if re.search(r"\.mesh$", args[0]):
+    print(re.search(r"\.mesh\s*$", args[0]))
+    if re.search(r"\.mesh\s*$", args[0]):
         parser = ParseMESHFormat(args[0])
-    elif re.search(r"\.msh$", args[0]):
+    elif re.search(r"\.msh\s*$", args[0]):
         raise NotImplementedError(".msh format not yet supported")
-    elif re.search(r"\.txt$", args[0]) and re.search(r"\.txt$", args[1]):
+    elif re.search(r"\.txt\s*$", args[0]) and re.search(r"\.txt$", args[1]):
         parser = ParseTXTFormat(*args)
     else:
         raise ValueError("Mesh format not supported")
@@ -172,3 +173,79 @@ class ParseTXTFormat(MeshParser):
         self.nodes = np.loadtxt(nodes_file, dtype=float)
 
         self.edges = list()
+
+class ParseMSHFormat(MeshParser):
+    """
+    Parse a mesh stored in the .msh format, the standard file format for GMSH.
+
+    Required Arguments
+    ------------------
+    * mesh_file : file path to the .msh file.
+    """
+    __doc__ += MeshParser.__doc__
+    def __init__(self, mesh_file):
+        self._mesh_file = mesh_file
+
+        mesh_format = self._parse_section("MeshFormat",
+                                          lambda x : tuple(x.split()),
+                                          has_count = False)
+        if mesh_format[0][0] != "2.2":
+            raise ValueError("Unsupported .msh version")
+
+        elements = self._parse_section("Elements",
+                                       lambda x : tuple(map(int,x.split()[1:-1])))
+        # hard-coded list of triangular entities. See GMSH documentation for
+        # more details.
+        triangles = map(lambda x : tuple(x[5:]),
+                        filter(lambda x : x[0] in [2,9,20,21,22,23,24,25], elements))
+        edges = map(lambda x : tuple(x[3:]) + tuple([x[2]]),
+                    filter(lambda x : x[0] in [1, 8], elements))
+        try:
+            self.elements = np.vstack(triangles)
+        except ValueError as np_error:
+            raise ValueError(np_error.value + ". Ensure that the mesh is"
+                             " conforming (all elements the same order)")
+
+        self.edges = edges
+        nodes = self._parse_section("Nodes",
+                            lambda x : (tuple(map(float, x.split()[0:-1])),
+                                        int(x.split()[-1])))
+        self.nodes = np.vstack(map(lambda x : x[0], nodes))
+
+    def _parse_section(self, pattern, line_parse_function, has_count = True):
+        """
+        Parse one chunk of the file, starting with some regex. Apply the
+        function 'line_parse_function' to each line in the section. Return a
+        list of the results. Stop when we get to another section (triggered by
+        reaching another line with alphabetical characters).
+        """
+        found_section = False
+        found_count = False
+        parsed_section = []
+        if not has_count:
+            found_count = True
+
+        with open(self._mesh_file) as f:
+            for line in f:
+                if (not found_section) and re.search(pattern,line):
+                    found_section = True
+                    continue
+
+                # if there is a lone number then we are on the next line. Ignore
+                # it.
+                if found_section and (not found_count) and re.search("^ *[0-9]+$",
+                                                                     line):
+                    found_count = True
+                    continue
+
+                # if we have found another string then the section is over.
+                if found_section and found_count and re.search("^ *\$\w+", line):
+                    break
+
+                # correctly ignore blank lines.
+                if found_section and found_count and not re.match("\s+$", line):
+                    parsed_section.append(line_parse_function(line))
+
+        if not found_section:
+            raise ValueError("Section with pattern " + pattern + " not found")
+        return parsed_section
