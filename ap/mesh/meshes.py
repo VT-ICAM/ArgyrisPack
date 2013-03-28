@@ -53,7 +53,9 @@ def mesh_factory(*args, **kwargs):
 
 class Mesh(object):
     """
-    Representation of a finite element mesh.
+    Representation of a finite element mesh. If every node shares the
+    same final coordinate value (e.g. all z-values are the same) then
+    this dimension is dropped.
 
     Required Arguments
     ------------------
@@ -121,7 +123,8 @@ class Mesh(object):
         self.elements = parsed_mesh.elements
 
         self.nodes = meshtools.project_nodes(projection, parsed_mesh.elements,
-                                             parsed_mesh.nodes)
+                                             parsed_mesh.nodes,
+                                             attempt_flatten = True)
 
         self.edge_collections = \
             meshtools.organize_edges(parsed_mesh.edges, borders=borders,
