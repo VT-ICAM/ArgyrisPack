@@ -80,18 +80,19 @@ def project_nodes(projection, elements, original_nodes, attempt_flatten = False)
     if attempt_flatten:
         if np.all(original_nodes[:,-1] == original_nodes[0,-1]):
             nodes = original_nodes[:,0:-1]
-    else:
-        nodes = np.array([projection(node) for node in original_nodes])
+            return nodes
 
-        # Do nothing for linears: there are no midpoints to fix.
-        if elements.shape[1] == 3:
-            pass
-        # fix quadratics.
-        elif elements.shape[1] == 6:
-            for i in range(2):
-                for (j, k) in [(0,1), (1,2), (2,0)]:
-                    nodes[elements[:,j + 3] - 1,i] = \
-                        0.5*(nodes[elements[:,j] - 1,i] + nodes[elements[:,k] - 1,i])
+    nodes = np.array([projection(node) for node in original_nodes])
+
+    # Do nothing for linears: there are no midpoints to fix.
+    if elements.shape[1] == 3:
+        pass
+    # fix quadratics.
+    elif elements.shape[1] == 6:
+        for i in range(2):
+            for (j, k) in [(0,1), (1,2), (2,0)]:
+                nodes[elements[:,j + 3] - 1,i] = \
+                    0.5*(nodes[elements[:,j] - 1,i] + nodes[elements[:,k] - 1,i])
 
     return nodes
 
