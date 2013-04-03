@@ -36,7 +36,7 @@ def extract_boundary_edges(elements):
     original_order = dict()
     sorted_edges = set()
 
-    side_nodes = (len(elements[0])-3)/3
+    side_nodes = int((len(elements[0])-3)/3)
     for element in elements:
         # Guarantee uniqueness of edges by sorting the nodes. At the end map the
         # sorted versions back to the original versions.
@@ -44,7 +44,7 @@ def extract_boundary_edges(elements):
                        tuple(element[3+i*side_nodes:3+(i+1)*side_nodes])
                        + (-1,) for (i,j) in [(0,1), (1,2), (2,0)]]
 
-        local_sorted_edges = map(lambda t : tuple(sorted(t)), local_edges)
+        local_sorted_edges = list(map(lambda t : tuple(sorted(t)), local_edges))
         original_order.update(zip(local_sorted_edges, local_edges))
 
         for edge in local_sorted_edges:
@@ -53,7 +53,7 @@ def extract_boundary_edges(elements):
             else:
                 sorted_edges.add(edge)
 
-    return map(lambda t : original_order[t], sorted_edges)
+    return list(map(lambda t : original_order[t], sorted_edges))
 
 def project_nodes(projection, elements, original_nodes, attempt_flatten = False):
     """
