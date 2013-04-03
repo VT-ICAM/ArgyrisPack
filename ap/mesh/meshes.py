@@ -72,6 +72,12 @@ class Mesh(object):
     * default_border : the name corresponding to the default edge
       collection. Defaults to "land".
 
+    * ignore_given_edges : If True, then throw out the provided edges and
+                           extract them automatically from the element
+                           connectivity matrix. Defaults to False. Useful when
+                           the edges supplied by the parsed mesh could be
+                           erroneous (contain non-mesh information).
+
     * projection     : function for transforming nodes (say from 3D to
       2D); for example,
 
@@ -119,7 +125,7 @@ class Mesh(object):
       prefix + name + _edges.txt.
     """
     def __init__(self, parsed_mesh, borders=dict(), default_border="land",
-                 projection=lambda x : x):
+                 ignore_given_edges = False, projection=lambda x : x):
         self.elements = parsed_mesh.elements
 
         self.nodes = meshtools.project_nodes(projection, parsed_mesh.elements,
@@ -130,7 +136,8 @@ class Mesh(object):
             meshtools.organize_edges(parsed_mesh.edges, borders=borders,
                                      default_border=default_border)
 
-        if max(map(len, self.edge_collections.values())) == 0:
+        if max(map(len, self.edge_collections.values())) == 0 \
+                or ignore_given_edges:
             self.edge_collections = \
                 {default_border :
                  set(meshtools.extract_boundary_edges(self.elements))}
@@ -241,14 +248,15 @@ class ArgyrisMesh(object):
     * savetxt: save the mesh in multiple text files.
     """
     def __init__(self, parsed_mesh, borders=dict(), default_border="land",
-                 projection=lambda x : x):
+                 ignore_given_edges=False, projection=lambda x : x):
         if parsed_mesh.elements.shape[1] != 6:
             raise NotImplementedError("Support for changing mesh order is not "
                                       + "implemented.")
             # parsed_mesh = meshtools.change_order(parsed_mesh, 2)
 
         lagrange_mesh = Mesh(parsed_mesh, borders=borders,
-                             default_border=default_border, projection=projection)
+                             default_border=default_border, projection=projection,
+                             ignore_given_edges=ignore_given_edges)
 
         # if not projected, try to flatten as a last resort.
         if (lagrange_mesh.nodes.shape[1] == 3 and
@@ -459,5 +467,4 @@ class ArgyrisNodeCollection(object):
         """For interactive debugging use."""
         return ("Node collection name: " + self.name + "\n" +
         "function values:\n" + str(self.function_values) + "\n" +
-        "normal derivatives:\n" + str(self.normal_derivatives) + "\n" +
-        "edges:\n" + str(self._edge_elements))
+        "normal derivatives:\n" + str(self.normal_derivatives) + "\n")
