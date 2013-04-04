@@ -266,7 +266,7 @@ class ArgyrisMesh(object):
         if lagrange_mesh.nodes.shape[1] != 2:
             raise ValueError("Requires a 2D mesh; try a different projection.")
 
-        self.elements = np.zeros((parsed_mesh.elements.shape[0],21), dtype=np.int)
+        self.elements = np.zeros((lagrange_mesh.elements.shape[0],21), dtype=np.int)
         self.elements[:,0:6] = lagrange_mesh.elements
 
         # solve a lot of orientation problems later by ensuring that the corner
@@ -275,7 +275,7 @@ class ArgyrisMesh(object):
             self._sort_corners_increasing(element[0:6])
 
         # stack the extra basis function nodes on the corners.
-        max_lagrange_mesh = parsed_mesh.elements.max() + 1;
+        max_lagrange_mesh = lagrange_mesh.elements.max() + 1;
         self.stacked_nodes = \
             {node_number : np.arange(max_lagrange_mesh + 5*count,
                                      max_lagrange_mesh + 5*count + 5)
@@ -306,6 +306,7 @@ class ArgyrisMesh(object):
 
         # set coordinates for the new nodes.
         self.nodes = np.zeros((self.elements.max(), 2))
+        self.nodes.fill(np.nan)
         self.nodes[0:lagrange_mesh.nodes.shape[0],:] = lagrange_mesh.nodes
         for stacked_node, new_nodes in self.stacked_nodes.items():
             self.nodes[new_nodes - 1] = self.nodes[stacked_node - 1]
