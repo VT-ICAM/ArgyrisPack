@@ -1,10 +1,10 @@
 void ap_global_gradients(double* restrict C, double* restrict B,
                          double* restrict ref_dx, double* restrict ref_dy,
-                         LAPACKINDEX quad_points,
+                         LAPACKINDEX num_points,
                          double* restrict dx, double* restrict dy)
 {
-        double dx_unmapped[21*quad_points];
-        double dy_unmapped[21*quad_points];
+        double dx_unmapped[21*num_points];
+        double dy_unmapped[21*num_points];
         int i;
 
         /* stuff for DGEMM */
@@ -24,12 +24,12 @@ void ap_global_gradients(double* restrict C, double* restrict B,
          * putting the reference values in long columns side-by-side and
          * multiplying by B_inv.
          */
-        for (i = 0; i < 21*quad_points; i++) {
+        for (i = 0; i < 21*num_points; i++) {
                 dx_unmapped[i] = B_inv00*ref_dx[i] + B_inv10*ref_dy[i];
                 dy_unmapped[i] = B_inv01*ref_dx[i] + B_inv11*ref_dy[i];
         }
 
         /* perform the transformation using the C matrix. */
-        DGEMM_WRAPPER(i_twentyone, quad_points, i_twentyone, C, dx_unmapped, dx);
-        DGEMM_WRAPPER(i_twentyone, quad_points, i_twentyone, C, dy_unmapped, dy);
+        DGEMM_WRAPPER(i_twentyone, num_points, i_twentyone, C, dx_unmapped, dx);
+        DGEMM_WRAPPER(i_twentyone, num_points, i_twentyone, C, dy_unmapped, dy);
 }

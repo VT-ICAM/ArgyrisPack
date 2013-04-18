@@ -1,12 +1,12 @@
 void ap_global_hessians(double* restrict C, double* restrict Th,
                         double* restrict ref_dxx, double* restrict ref_dxy,
-                        double* restrict ref_dyy, LAPACKINDEX quad_points,
+                        double* restrict ref_dyy, LAPACKINDEX num_points,
                         double* restrict dxx, double* restrict dxy,
                         double* restrict dyy)
 {
-        double dxx_unmapped[21*quad_points];
-        double dxy_unmapped[21*quad_points];
-        double dyy_unmapped[21*quad_points];
+        double dxx_unmapped[21*num_points];
+        double dxy_unmapped[21*num_points];
+        double dyy_unmapped[21*num_points];
         int i;
 
         /* stuff for DGEMM */
@@ -47,7 +47,7 @@ void ap_global_hessians(double* restrict C, double* restrict Th,
          * putting the reference values in long columns side-by-side and
          * multiplying by Th_inv.
          */
-        for (i = 0; i < i_twentyone*quad_points; i++) {
+        for (i = 0; i < i_twentyone*num_points; i++) {
                 dxx_unmapped[i] = ref_dxx[i]*Th_inv00 + ref_dxy[i]*Th_inv10 +
                         ref_dyy[i]*Th_inv20;
                 dxy_unmapped[i] = ref_dxx[i]*Th_inv01 + ref_dxy[i]*Th_inv11 +
@@ -57,10 +57,10 @@ void ap_global_hessians(double* restrict C, double* restrict Th,
         }
 
         /* perform the transformation using the C matrix. */
-        DGEMM_WRAPPER(i_twentyone, quad_points, i_twentyone, C, dxx_unmapped,
+        DGEMM_WRAPPER(i_twentyone, num_points, i_twentyone, C, dxx_unmapped,
                       dxx);
-        DGEMM_WRAPPER(i_twentyone, quad_points, i_twentyone, C, dxy_unmapped,
+        DGEMM_WRAPPER(i_twentyone, num_points, i_twentyone, C, dxy_unmapped,
                       dxy);
-        DGEMM_WRAPPER(i_twentyone, quad_points, i_twentyone, C, dyy_unmapped,
+        DGEMM_WRAPPER(i_twentyone, num_points, i_twentyone, C, dyy_unmapped,
                       dyy);
 }
