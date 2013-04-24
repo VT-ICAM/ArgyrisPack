@@ -1,4 +1,4 @@
-void ap_global_hessians(double* restrict C, double* restrict Th,
+void ap_physical_hessians(double* restrict C, double* restrict Th,
                         double* restrict ref_dxx, double* restrict ref_dxy,
                         double* restrict ref_dyy, LAPACKINDEX num_points,
                         double* restrict dxx, double* restrict dxy,

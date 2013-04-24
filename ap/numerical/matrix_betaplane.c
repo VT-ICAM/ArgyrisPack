@@ -16,8 +16,8 @@ void ap_matrix_betaplane(double* restrict C, double* restrict B,
         const double jacobian = fabs(B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)] -
                                      B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)]);
 
-        ap_global_gradients(C, B, ref_dx, ref_dy, num_points, dx, dy);
-        ap_global_functions(C, ref_values, num_points, values);
+        ap_physical_gradients(C, B, ref_dx, ref_dy, num_points, dx, dy);
+        ap_physical_values(C, ref_values, num_points, values);
 
         /* scale the weights by the jacobian. */
         for (i = 0; i < num_points; i++) {

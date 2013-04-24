@@ -1,5 +1,5 @@
-void ap_local_functions(double* restrict x, double* restrict y, LAPACKINDEX num_points,
-                        double* restrict ref_values)
+void ap_ref_values(double* restrict x, double* restrict y, LAPACKINDEX num_points,
+                   double* restrict ref_values)
 {
         double monomials[21*num_points];
         int i;
@@ -7,13 +7,12 @@ void ap_local_functions(double* restrict x, double* restrict y, LAPACKINDEX num_
         /* stuff for dgemm */
         LAPACKINDEX i_twentyone = 21;
 
-#include "coefficients_functions.h"
+#include "coefficients_values.h"
 
         /*
-         * Rows in the monomial matrix correspond to monomials (x, y,
-         * x^2, etc) while columns correspond to quadrature points. The
-         * monomial basis spans quintic polynomials of dimension 2
-         * (hence 21 rows).
+         * Rows in the monomial matrix correspond to monomials (x, y, x^2, etc)
+         * while columns correspond to quadrature points. The monomial basis
+         * spans quintic polynomials of dimension 2 (hence 21 rows).
          */
         for (i = 0; i < num_points; i++) {
                 monomials[ORDER(0,  i, 21, num_points)] = 1.0;

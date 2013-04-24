@@ -1,6 +1,6 @@
-void ap_global_maps(double* restrict x, double* restrict y,
-                    double* restrict C, double* restrict B,
-                    double* restrict b, double* restrict Th)
+void ap_physical_maps(double* restrict x, double* restrict y,
+                      double* restrict C, double* restrict B,
+                      double* restrict b, double* restrict Th)
 {
         /* zero the C array. The others will be completely filled. */
         memset(C, 0, sizeof(double)*21*21);

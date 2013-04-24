@@ -18,14 +18,14 @@ void dgemm(char*, char*, int*, int*, int*, double*, double*, int*, double*, int*
 #include "order_logic.h"
 #include "multiply_by_diagonal.c"
 
-#include "local_functions.c"
-#include "local_gradients.c"
-#include "local_hessians.c"
+#include "ref_values.c"
+#include "ref_gradients.c"
+#include "ref_hessians.c"
 
-#include "global_maps.c"
-#include "global_functions.c"
-#include "global_gradients.c"
-#include "global_hessians.c"
+#include "physical_maps.c"
+#include "physical_values.c"
+#include "physical_gradients.c"
+#include "physical_hessians.c"
 
 #include "matrix_mass.c"
 #include "matrix_stiffness.c"

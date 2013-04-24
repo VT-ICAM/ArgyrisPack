@@ -17,7 +17,7 @@ void ap_matrix_stiffness(double* restrict C, double* restrict B,
         const double jacobian = fabs(B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)] -
                                      B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)]);
 
-        ap_global_gradients(C, B, ref_dx, ref_dy, num_points, dx, dy);
+        ap_physical_gradients(C, B, ref_dx, ref_dy, num_points, dx, dy);
 
         /* scale the weights by the jacobian. */
         for (i = 0; i < num_points; i++) {

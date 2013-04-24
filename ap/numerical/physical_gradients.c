@@ -1,4 +1,4 @@
-void ap_global_gradients(double* restrict C, double* restrict B,
+void ap_physical_gradients(double* restrict C, double* restrict B,
                          double* restrict ref_dx, double* restrict ref_dy,
                          LAPACKINDEX num_points,
                          double* restrict dx, double* restrict dy)
@@ -10,7 +10,7 @@ void ap_global_gradients(double* restrict C, double* restrict B,
         /* stuff for DGEMM */
         LAPACKINDEX i_twentyone = 21;
 
-        /* Calculate the global-to-local mapping. */
+        /* Calculate the physical-to-reference mapping. */
         const double B_det_inv = 1/(B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)] -
                                     B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)]);
 

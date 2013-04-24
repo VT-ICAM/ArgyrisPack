@@ -1,6 +1,6 @@
-void ap_local_hessians(double* restrict x, double* restrict y, LAPACKINDEX num_points,
-                       double* restrict ref_dxx, double* restrict ref_dxy,
-                       double* restrict ref_dyy)
+void ap_ref_hessians(double* restrict x, double* restrict y, LAPACKINDEX num_points,
+                     double* restrict ref_dxx, double* restrict ref_dxy,
+                     double* restrict ref_dyy)
 {
         double monomials[10*num_points];
         int i;

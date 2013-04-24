@@ -17,7 +17,7 @@ void ap_matrix_biharmonic(double* restrict C, double* restrict B,
         const double jacobian = fabs(B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)] -
                                      B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)]);
 
-        ap_global_hessians(C, Th, ref_dxx, ref_dxy, ref_dyy, num_points, dxx,
+        ap_physical_hessians(C, Th, ref_dxx, ref_dxy, ref_dyy, num_points, dxx,
                            dxy, dyy);
 
         /* Reassign dxx and dyy to be values of the laplacian. */

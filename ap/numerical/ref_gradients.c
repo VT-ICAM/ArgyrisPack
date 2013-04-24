@@ -1,5 +1,5 @@
-void ap_local_gradients(double* restrict x, double* restrict y, LAPACKINDEX num_points,
-                        double* restrict ref_dx, double* restrict ref_dy)
+void ap_ref_gradients(double* restrict x, double* restrict y, LAPACKINDEX num_points,
+                      double* restrict ref_dx, double* restrict ref_dy)
 {
         double monomials[15*num_points];
         int i;
@@ -11,10 +11,9 @@ void ap_local_gradients(double* restrict x, double* restrict y, LAPACKINDEX num_
 #include "coefficients_gradients.h"
 
         /*
-         * Rows in the monomial matrix correspond to monomials (x, y,
-         * x^2, etc) while columns correspond to quadrature points. The
-         * monomial basis spans quartic polynomials of dimension 2
-         * (hence 15 rows).
+         * Rows in the monomial matrix correspond to monomials (x, y, x^2, etc)
+         * while columns correspond to quadrature points. The monomial basis
+         * spans quartic polynomials of dimension 2 (hence 15 rows).
          */
         for (i = 0; i < num_points; i++) {
                 monomials[ORDER(0,  i, 15, num_points)] = 1.0;
