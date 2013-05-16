@@ -7,32 +7,34 @@
 #define MWINDEX int
 #endif
 
-void ap_local_functions(double* restrict x, double* restrict y, LAPACKINDEX num_points,
-                        double* restrict ref_functions);
+void ap_ref_functions(double* restrict x, double* restrict y,
+                      LAPACKINDEX num_points, double* restrict ref_functions);
 
-void ap_local_gradients(double* restrict x, double* restrict y, LAPACKINDEX num_points,
-                        double* restrict ref_dx, double* restrict ref_dy);
+void ap_ref_gradients(double* restrict x, double* restrict y,
+                      LAPACKINDEX num_points, double* restrict ref_dx,
+                      double* restrict ref_dy);
 
-void ap_local_hessians(double* restrict x, double* restrict y, LAPACKINDEX num_points,
-                       double* restrict ref_dxx, double* restrict ref_dxy,
-                       double* restrict ref_dyy);
+void ap_ref_hessians(double* restrict x, double* restrict y,
+                     LAPACKINDEX num_points, double* restrict ref_dxx,
+                     double* restrict ref_dxy, double* restrict ref_dyy);
 
-void ap_global_maps(double* restrict x, double* restrict y, double* restrict C,
-                    double* restrict B, double* restrict b, double* restrict Th);
+void ap_physical_maps(double* restrict x, double* restrict y,
+                      double* restrict C, double* restrict B,
+                      double* restrict b, double* restrict Th);
 
-void ap_global_functions(double* restrict C, double* restrict ref_values,
-                         LAPACKINDEX num_points, double* restrict values);
+void ap_physical_functions(double* restrict C, double* restrict ref_values,
+                           LAPACKINDEX num_points, double* restrict values);
 
-void ap_global_gradients(double* restrict C, double* restrict B,
-                         double* restrict ref_dx, double* restrict ref_dy,
-                         LAPACKINDEX num_points,
-                         double* restrict dx, double* restrict dy);
+void ap_physical_gradients(double* restrict C, double* restrict B,
+                           double* restrict ref_dx, double* restrict ref_dy,
+                           LAPACKINDEX num_points,
+                           double* restrict dx, double* restrict dy);
 
-void ap_global_hessians(double* restrict C, double* restrict Th,
-                        double* restrict ref_dxx, double* restrict ref_dxy,
-                        double* restrict ref_dyy, LAPACKINDEX num_points,
-                        double* restrict dxx, double* restrict dxy,
-                        double* restrict dyy);
+void ap_physical_hessians(double* restrict C, double* restrict Th,
+                          double* restrict ref_dxx, double* restrict ref_dxy,
+                          double* restrict ref_dyy, LAPACKINDEX num_points,
+                          double* restrict dxx, double* restrict dxy,
+                          double* restrict dyy);
 
 void ap_matrix_mass(double* restrict C, double* restrict B,
                     double* restrict ref_functions, double* restrict weights,
