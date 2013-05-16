@@ -30,13 +30,13 @@ class InterpolatedBasisFunctions(SageObject):
 
         # Compute the change of coordinates from the specified triangle to the
         # reference simplex.
-        local_to_global = matrix([[xs[1] - xs[0], xs[2] - xs[0]],
+        ref_to_physical = matrix([[xs[1] - xs[0], xs[2] - xs[0]],
                                   [ys[1] - ys[0], ys[2] - ys[0]]])
         affine_shift = matrix([[xs[0]], [ys[0]]])
-        ref_values = local_to_global*matrix([[x],[y]]) + affine_shift
+        ref_values = ref_to_physical*matrix([[x],[y]]) + affine_shift
         xref = ref_values[0,0]
         yref = ref_values[1,0]
-        self.jacobian = float(local_to_global.det())
+        self.jacobian = float(ref_to_physical.det())
 
         for polynomial in self.polynomials:
             self.ref_polynomials.append(
