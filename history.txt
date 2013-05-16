@@ -1,3 +1,5 @@
+May 16 2013 : V2.00 : Post-thesis release of new meshing materials and renaming
+                      of local to reference and global to physical.
 Oct 25 2012 : V1.06 : bugfix release; fixed a problem with the no-projection
                       case.
 Oct 25 2012 : V1.05 : bugfix release; include a workaround to delete nodes that
