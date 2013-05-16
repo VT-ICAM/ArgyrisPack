@@ -43,20 +43,20 @@ end
 xs = rand(50,1);
 ys = (1 - xs).*rand(50,1);
 
-[C B b Th] = apGlobalMapsMex([1/2, 3/2, 1], [1, 1, 3/2]);
+[C B b Th] = apPhysicalMapsMex([1/2, 3/2, 1], [1, 1, 3/2]);
 
-functionRef            = apLocalFunctionsMex(xs, ys);
-[dxRef dyRef]          = apLocalGradientsMex(xs, ys);
-[dxxRef dxyRef dyyRef] = apLocalHessiansMex(xs, ys);
+functionRef            = apRefValuesMex(xs, ys);
+[dxRef dyRef]          = apRefGradientsMex(xs, ys);
+[dxxRef dxyRef dyyRef] = apRefHessiansMex(xs, ys);
 
-values = apGlobalFunctionsMex(C, functionRef);
-[dx dy] = apGlobalGradientsMex(C, B, dxRef, dyRef);
-[dxx dxy dyy] = apGlobalHessiansMex(C, Th, dxxRef, dxyRef, dyyRef);
+values = apPhysicalValuesMex(C, functionRef);
+[dx dy] = apPhysicalGradientsMex(C, B, dxRef, dyRef);
+[dxx dxy dyy] = apPhysicalHessiansMex(C, Th, dxxRef, dxyRef, dyyRef);
 
-% map the comparison points to global coordinates.
-globalPoints = B*[xs';ys'];
-globalxs = globalPoints(1,:) + b(1);
-globalys = globalPoints(2,:) + b(2);
+% map the comparison points to physical coordinates.
+physicalPoints = B*[xs';ys'];
+physicalxs = physicalPoints(1,:) + b(1);
+physicalys = physicalPoints(2,:) + b(2);
 
 valuesSymbolic = zeros(size(values));
 dxSymbolic = zeros(size(dx));
@@ -67,20 +67,25 @@ dyySymbolic = zeros(size(dyy));
 
 for i=1:21
     for j=1:size(valuesSymbolic, 2)
-        valuesSymbolic(i,j) = subs(subs(argyris(i), x, globalxs(j)), y, globalys(j));
-        dxSymbolic(i,j)     = subs(subs(argyrisdx(i), x, globalxs(j)), y, globalys(j));
-        dySymbolic(i,j)     = subs(subs(argyrisdy(i), x, globalxs(j)), y, globalys(j));
-        dxxSymbolic(i,j)    = subs(subs(argyrisdxx(i), x, globalxs(j)), y, globalys(j));
-        dxySymbolic(i,j)    = subs(subs(argyrisdxy(i), x, globalxs(j)), y, globalys(j));
-        dyySymbolic(i,j)    = subs(subs(argyrisdyy(i), x, globalxs(j)), y, globalys(j));
+        valuesSymbolic(i,j) = subs(subs(argyris(i), x, physicalxs(j)), y, physicalys(j));
+        dxSymbolic(i,j)     = subs(subs(argyrisdx(i), x, physicalxs(j)), y, physicalys(j));
+        dySymbolic(i,j)     = subs(subs(argyrisdy(i), x, physicalxs(j)), y, physicalys(j));
+        dxxSymbolic(i,j)    = subs(subs(argyrisdxx(i), x, physicalxs(j)), y, physicalys(j));
+        dxySymbolic(i,j)    = subs(subs(argyrisdxy(i), x, physicalxs(j)), y, physicalys(j));
+        dyySymbolic(i,j)    = subs(subs(argyrisdyy(i), x, physicalxs(j)), y, physicalys(j));
     end
 end
 
 disp('Error Results:')
-disp(['Max Error in function values : ' max(max(abs(values - ...
-                                                  valuesSymbolic)))]);
-disp(['Max Error in dx              : ' max(max(abs(dx - dxSymbolic)))]);
-disp(['Max Error in dy              : ' max(max(abs(dy - dySymbolic)))]);
-disp(['Max Error in dxx             : ' max(max(abs(dxx - dxxSymbolic)))]);
-disp(['Max Error in dxy             : ' max(max(abs(dxy - dxySymbolic)))]);
-disp(['Max Error in dyy             : ' max(max(abs(dyy - dyySymbolic)))]);
+disp(['Max Error in function values : ' num2str(max(max(abs(values - ...
+                                                  valuesSymbolic))))]);
+disp(['Max Error in dx              : ' num2str(max(max(abs(dx - ...
+                                                  dxSymbolic))))]);
+disp(['Max Error in dy              : ' num2str(max(max(abs(dy - ...
+                                                  dySymbolic))))]);
+disp(['Max Error in dxx             : ' num2str(max(max(abs(dxx - ...
+                                                  dxxSymbolic))))]);
+disp(['Max Error in dxy             : ' num2str(max(max(abs(dxy - ...
+                                                  dxySymbolic))))]);
+disp(['Max Error in dyy             : ' num2str(max(max(abs(dyy - ...
+                                                  dyySymbolic))))]);
