@@ -2,7 +2,7 @@
 #include "blas.h"
 
 #include "order_logic.h"
-#include "global_gradients.c"
+#include "physical_gradients.c"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -13,23 +13,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         /* check input. */
         if (nrhs != 4) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalGradientsMex",
                                   "Four inputs required.");
         }
         if (21 != mxGetN(prhs[0]) || 21 != mxGetM(prhs[0])) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalGradientsMex",
                                   "The C matrix must be the first argument.");
         }
         if ((2 != mxGetN(prhs[1])) || (2 != mxGetM(prhs[1]))) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalGradientsMex",
                                   "The B matrix must be the second argument.");
         }
         if (mxGetN(prhs[2]) != mxGetN(prhs[3])) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalGradientsMex",
                                   "Mismatch in number of quadrature points.");
         }
         if (21 != mxGetM(prhs[2]) || 21 != mxGetM(prhs[3])) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalGradientsMex",
                                   "There should be 21 basis functions "
                                   "corresponding to 21 rows.");
         }
@@ -42,7 +42,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         /* check output. */
         if (nlhs != 2) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalGradientsMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalGradientsMex",
                                   "Requires two outputs.");
         }
 
@@ -51,5 +51,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         dx = mxGetPr(plhs[0]);
         dy = mxGetPr(plhs[1]);
 
-        ap_global_gradients(C, B, ref_dx, ref_dy, quadPoints, dx, dy);
+        ap_physical_gradients(C, B, ref_dx, ref_dy, quadPoints, dx, dy);
 }

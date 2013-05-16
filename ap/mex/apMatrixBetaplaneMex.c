@@ -6,8 +6,8 @@
 #include "order_logic.h"
 
 #include "multiply_by_diagonal.c"
-#include "global_gradients.c"
-#include "global_functions.c"
+#include "physical_gradients.c"
+#include "physical_functions.c"
 #include "matrix_betaplane.c"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

@@ -2,7 +2,7 @@
 #include "blas.h"
 
 #include "order_logic.h"
-#include "global_hessians.c"
+#include "physical_hessians.c"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -14,25 +14,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         /* check input. */
         if (nrhs != 5) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalHessiansMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
                                   "Requires five arguements.");
         }
         if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0]))) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalHessiansMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
                                   "The C matrix must be the first arguement.");
         }
         if ((3 != mxGetN(prhs[1])) || (3 != mxGetM(prhs[1]))) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalHessiansMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
                                   "The Th matrix must be the second arguement.");
         }
         for (i = 2; i < 5; i++) {
                 if (21 != mxGetM(prhs[i])) {
-                        mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalHessiansMex",
+                        mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
                                           "There should be 21 basis functions "
                                           "corresponding to 21 rows.");
                 }
                 if (mxGetN(prhs[2]) != mxGetN(prhs[i])) {
-                        mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalHessiansMex",
+                        mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
                                           "Mismatch in number of quadrature points.");
                 }
         }
@@ -46,7 +46,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         /* check output. */
         if (nlhs != 3) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apGlobalHessiansMex",
+                mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
                                   "Requires three outputs.");
         }
 
@@ -57,6 +57,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         dxy = mxGetPr(plhs[1]);
         dyy = mxGetPr(plhs[2]);
 
-        ap_global_hessians(C, Th, refdxx, refdxy, refdyy, quadPoints,
+        ap_physical_hessians(C, Th, refdxx, refdxy, refdyy, quadPoints,
                            dxx, dxy, dyy);
 }

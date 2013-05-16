@@ -6,7 +6,7 @@
 #include "order_logic.h"
 
 #include "multiply_by_diagonal.c"
-#include "global_hessians.c"
+#include "physical_hessians.c"
 #include "matrix_biharmonic.c"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

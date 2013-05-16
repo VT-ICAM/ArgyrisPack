@@ -6,7 +6,7 @@
 #include "order_logic.h"
 
 #include "multiply_by_diagonal.c"
-#include "global_functions.c"
+#include "physical_functions.c"
 #include "matrix_mass.c"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
