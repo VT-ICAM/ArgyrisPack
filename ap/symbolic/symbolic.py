@@ -7,6 +7,12 @@ class InterpolatedBasisFunctions(SageObject):
     """
     Given corners, calculate the Argyris basis elements on the triangle and its
     derivatives.
+
+    ref_polynomials_* refers to the mapping of the interpolated polynomials back
+    on to the reference element.
+
+    physical_polynomials_* referr to the polynomials (and derivatives) on the
+    physical element.
     """
     def __init__(self, xs, ys):
         var('x, y')
@@ -15,9 +21,18 @@ class InterpolatedBasisFunctions(SageObject):
         if len(xs) != 3 or len(ys) != 3:
             raise ValueError("List of corners must have three entries.")
 
-
         self.corners = zip(xs, ys)
-        self.polynomials = argyris_polynomials(xs, ys)
+        self.physical_polynomials = argyris_polynomials(xs, ys)
+        self.physical_polynomials_x = [diff(p,x)
+                                       for p in self.physical_polynomials]
+        self.physical_polynomials_y = [diff(p,y)
+                                       for p in self.physical_polynomials]
+        self.physical_polynomials_xx = [diff(p,x,2)
+                                        for p in self.physical_polynomials]
+        self.physical_polynomials_xy = [diff(p,x,y)
+                                        for p in self.physical_polynomials]
+        self.physical_polynomials_yy = [diff(p,y,2)
+                                        for p in self.physical_polynomials]
         self.ref_polynomials = []
         self.ref_polynomials_x = []
         self.ref_polynomials_y = []
@@ -38,7 +53,7 @@ class InterpolatedBasisFunctions(SageObject):
         yref = ref_values[1,0]
         self.jacobian = float(ref_to_physical.det())
 
-        for polynomial in self.polynomials:
+        for polynomial in self.physical_polynomials:
             self.ref_polynomials.append(
                 polynomial.subs({x : xref, y : yref}))
             self.ref_polynomials_x.append(
