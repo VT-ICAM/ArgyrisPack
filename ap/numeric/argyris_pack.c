@@ -28,5 +28,6 @@ void dgemm(char*, char*, int*, int*, int*, double*, double*, int*, double*, int*
 #include "physical_hessians.c"
 
 #include "matrix_mass.c"
+#include "matrix_betaplane.c"
 #include "matrix_stiffness.c"
 #include "matrix_biharmonic.c"
