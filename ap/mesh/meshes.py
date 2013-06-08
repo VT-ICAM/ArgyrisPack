@@ -169,7 +169,10 @@ class Mesh(object):
         np.savetxt(prefix + "nodes.txt", self.nodes)
         np.savetxt(prefix + "elements.txt", self.elements, fmt="%d")
         np.savetxt(prefix + "interior_nodes.txt", self.interior_nodes, fmt="%d")
-        np.savetxt(prefix + "boundary_nodes.txt", self.boundary_nodes, fmt="%d")
+
+        for (name, collection) in self.boundary_nodes.items():
+            np.savetxt(prefix + name + "_boundary_nodes.txt", collection,
+                       fmt="%d")
 
         for name, collection in self.edge_collections.items():
             np.savetxt(prefix + name + '_edges.txt', [t for t in collection],
