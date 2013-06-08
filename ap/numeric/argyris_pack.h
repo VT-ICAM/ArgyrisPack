@@ -20,7 +20,7 @@ void ap_ref_hessians(double* restrict x, double* restrict y,
 
 void ap_physical_maps(double* restrict x, double* restrict y,
                       double* restrict C, double* restrict B,
-                      double* restrict b, double* restrict Th);
+                      double* restrict b);
 
 void ap_physical_functions(double* restrict C, double* restrict ref_values,
                            LAPACKINDEX num_points, double* restrict values);
@@ -30,7 +30,7 @@ void ap_physical_gradients(double* restrict C, double* restrict B,
                            LAPACKINDEX num_points,
                            double* restrict dx, double* restrict dy);
 
-void ap_physical_hessians(double* restrict C, double* restrict Th,
+void ap_physical_hessians(double* restrict C, double* restrict B,
                           double* restrict ref_dxx, double* restrict ref_dxy,
                           double* restrict ref_dyy, LAPACKINDEX num_points,
                           double* restrict dxx, double* restrict dxy,
@@ -40,13 +40,18 @@ void ap_matrix_mass(double* restrict C, double* restrict B,
                     double* restrict ref_functions, double* restrict weights,
                     LAPACKINDEX num_points, double* restrict mass);
 
+void ap_matrix_betaplane(double* restrict C, double* restrict B,
+                         double* restrict ref_values,
+                         double* restrict ref_dx, double* restrict ref_dy,
+                         double* restrict weights,
+                         LAPACKINDEX num_points, double* restrict betaplane);
+
 void ap_matrix_stiffness(double* restrict C, double* restrict B,
                          double* restrict ref_dx, double* restrict ref_dy,
                          double* restrict weights,
                          LAPACKINDEX num_points, double* restrict stiffness);
 
 void ap_matrix_biharmonic(double* restrict C, double* restrict B,
-                          double* restrict Th,
                           double* restrict ref_dxx, double* restrict ref_dxy,
                           double* restrict ref_dyy, double* restrict weights,
                           LAPACKINDEX num_points, double* restrict biharmonic);

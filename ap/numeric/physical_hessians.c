@@ -1,8 +1,8 @@
-void ap_physical_hessians(double* restrict C, double* restrict Th,
-                        double* restrict ref_dxx, double* restrict ref_dxy,
-                        double* restrict ref_dyy, LAPACKINDEX num_points,
-                        double* restrict dxx, double* restrict dxy,
-                        double* restrict dyy)
+void ap_physical_hessians(double* restrict C, double* restrict B,
+                          double* restrict ref_dxx, double* restrict ref_dxy,
+                          double* restrict ref_dyy, LAPACKINDEX num_points,
+                          double* restrict dxx, double* restrict dxy,
+                          double* restrict dyy)
 {
         double dxx_unmapped[21*num_points];
         double dxy_unmapped[21*num_points];
@@ -12,48 +12,45 @@ void ap_physical_hessians(double* restrict C, double* restrict Th,
         /* stuff for DGEMM */
         LAPACKINDEX i_twentyone = 21;
 
-        /* Calculate Th_inv entries. */
-        const double Th_det =
-                Th[ORDER(0, 0, 3, 3)]*(Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 2, 3, 3)] -
-                                    Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 1, 3, 3)]) +
-                Th[ORDER(0, 1, 3, 3)]*(Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 0, 3, 3)] -
-                                    Th[ORDER(2, 2, 3, 3)]*Th[ORDER(1, 0, 3, 3)]) +
-                Th[ORDER(0, 2, 3, 3)]*(Th[ORDER(1, 0, 3, 3)]*Th[ORDER(2, 1, 3, 3)] -
-                                    Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 0, 3, 3)]);
+        /*
+         * There is an extra 3x3 matrix (corresponding, in Dominguez's notation,
+         * to Theta transpose) due to application of the chain rule. It's
+         * entries depend on the original affine transformation from reference
+         * to physical coordinates (hence the dependence on B).
+         */
+        const double t = (B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)]
+                        - B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)])*
+                         (B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)]
+                        - B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)]);
 
-        const double Th_inv00 = (Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 2, 3, 3)] -
-                                 Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 1, 3, 3)])/Th_det;
-        const double Th_inv01 = (Th[ORDER(0, 2, 3, 3)]*Th[ORDER(2, 1, 3, 3)] -
-                                 Th[ORDER(0, 1, 3, 3)]*Th[ORDER(2, 2, 3, 3)])/Th_det;
-        const double Th_inv02 = (Th[ORDER(0, 1, 3, 3)]*Th[ORDER(1, 2, 3, 3)] -
-                                 Th[ORDER(0, 2, 3, 3)]*Th[ORDER(1, 1, 3, 3)])/Th_det;
+        const double map00 = B[ORDER(1, 1, 2, 2)]*B[ORDER(1, 1, 2, 2)]/t;
+        const double map01 = -2.0*B[ORDER(1, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)]/t;
+        const double map02 = B[ORDER(1, 0, 2, 2)]*B[ORDER(1, 0, 2, 2)]/t;
 
-        const double Th_inv10 = (Th[ORDER(1, 2, 3, 3)]*Th[ORDER(2, 0, 3, 3)] -
-                                 Th[ORDER(1, 0, 3, 3)]*Th[ORDER(2, 2, 3, 3)])/Th_det;
-        const double Th_inv11 = (Th[ORDER(0, 0, 3, 3)]*Th[ORDER(2, 2, 3, 3)] -
-                                 Th[ORDER(0, 2, 3, 3)]*Th[ORDER(2, 0, 3, 3)])/Th_det;
-        const double Th_inv12 = (Th[ORDER(0, 2, 3, 3)]*Th[ORDER(1, 0, 3, 3)] -
-                                 Th[ORDER(0, 0, 3, 3)]*Th[ORDER(1, 2, 3, 3)])/Th_det;
+        const double map10 = -1.0*B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 1, 2, 2)]/t;
+        const double map11 = (B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 1, 2, 2)]
+                            + B[ORDER(0, 1, 2, 2)]*B[ORDER(1, 0, 2, 2)])/t;
+        const double map12 = -1.0*B[ORDER(0, 0, 2, 2)]*B[ORDER(1, 0, 2, 2)]/t;
 
-        const double Th_inv20 = (Th[ORDER(1, 0, 3, 3)]*Th[ORDER(2, 1, 3, 3)] -
-                                 Th[ORDER(1, 1, 3, 3)]*Th[ORDER(2, 0, 3, 3)])/Th_det;
-        const double Th_inv21 = (Th[ORDER(2, 0, 3, 3)]*Th[ORDER(0, 1, 3, 3)] -
-                                 Th[ORDER(0, 0, 3, 3)]*Th[ORDER(2, 1, 3, 3)])/Th_det;
-        const double Th_inv22 = (Th[ORDER(0, 0, 3, 3)]*Th[ORDER(1, 1, 3, 3)] -
-                                 Th[ORDER(0, 1, 3, 3)]*Th[ORDER(1, 0, 3, 3)])/Th_det;
+        const double map20 = B[ORDER(0, 1, 2, 2)]*B[ORDER(0, 1, 2, 2)]/t;
+        const double map21 = -2.0*B[ORDER(0, 0, 2, 2)]*B[ORDER(0, 1, 2, 2)]/t;
+        const double map22 = B[ORDER(0, 0, 2, 2)]*B[ORDER(0, 0, 2, 2)]/t;
 
         /*
-         * Perform the transformation using Th inverse. This is equivalent to
-         * putting the reference values in long columns side-by-side and
-         * multiplying by Th_inv.
+         * Perform the transformation. This is equivalent to putting the
+         * reference values in long columns side-by-side and multiplying by
+         * (Theta inverse) transpose.
          */
         for (i = 0; i < i_twentyone*num_points; i++) {
-                dxx_unmapped[i] = ref_dxx[i]*Th_inv00 + ref_dxy[i]*Th_inv10 +
-                        ref_dyy[i]*Th_inv20;
-                dxy_unmapped[i] = ref_dxx[i]*Th_inv01 + ref_dxy[i]*Th_inv11 +
-                        ref_dyy[i]*Th_inv21;
-                dyy_unmapped[i] = ref_dxx[i]*Th_inv02 + ref_dxy[i]*Th_inv12 +
-                        ref_dyy[i]*Th_inv22;
+                dxx_unmapped[i] = ref_dxx[i]*map00
+                                + ref_dxy[i]*map01
+                                + ref_dyy[i]*map02;
+                dxy_unmapped[i] = ref_dxx[i]*map10
+                                + ref_dxy[i]*map11
+                                + ref_dyy[i]*map12;
+                dyy_unmapped[i] = ref_dxx[i]*map20
+                                + ref_dxy[i]*map21
+                                + ref_dyy[i]*map22;
         }
 
         /* perform the transformation using the C matrix. */

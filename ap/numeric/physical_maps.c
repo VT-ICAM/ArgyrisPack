@@ -1,6 +1,6 @@
 void ap_physical_maps(double* restrict x, double* restrict y,
                       double* restrict C, double* restrict B,
-                      double* restrict b, double* restrict Th)
+                      double* restrict b)
 {
         /* zero the C array. The others will be completely filled. */
         memset(C, 0, sizeof(double)*21*21);
@@ -66,17 +66,6 @@ void ap_physical_maps(double* restrict x, double* restrict y,
         C_constant0 = (B00*v02 + B01*v02 + B10*v12 + B11*v12);
         C_constant1 = (B00*v01 + B10*v11);
         C_constant2 = (B01*v00 + B11*v10);
-
-        /* fill Th. Note that this is the transpose of the usual definition. */
-        Th[ORDER(0, 0, 3, 3)] = B00*B00;
-        Th[ORDER(1, 0, 3, 3)] = 2*B00*B10;
-        Th[ORDER(2, 0, 3, 3)] = B10*B10;
-        Th[ORDER(0, 1, 3, 3)] = B00*B01;
-        Th[ORDER(1, 1, 3, 3)] = B00*B11 + B01*B10;
-        Th[ORDER(2, 1, 3, 3)] = B10*B11;
-        Th[ORDER(0, 2, 3, 3)] = B01*B01;
-        Th[ORDER(1, 2, 3, 3)] = 2*B01*B11;
-        Th[ORDER(2, 2, 3, 3)] = B11*B11;
 
         /* fill C. Note that this is the transpose of the usual definition. */
         C[ORDER(0, 0, 21, 21)]   = 1;
