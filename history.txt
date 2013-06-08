@@ -1,3 +1,6 @@
+May 16 2013 : V2.10 : Various bugfixes regarding the 2.0 release; Python
+                      interface and tests implemented. Changed the directory
+                      from 'numerical' to 'numeric'.
 May 16 2013 : V2.00 : Post-thesis release of new meshing materials and renaming
                       of local to reference and global to physical.
 Oct 25 2012 : V1.06 : bugfix release; fixed a problem with the no-projection

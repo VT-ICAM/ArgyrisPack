@@ -7,8 +7,7 @@ C1 finite element with 21 degrees of freedom. The Argyris-5 element spans the
 space of 5th degree polynomials on each element and has O(h^4) convergence in
 the H2 norm. The main goals of ArgyrisPack are numerical correctness,
 performance, and portability. ArgyrisPack is mostly written in C and can be called
-from C, Matlab, or Julia. Additional interfaces (particularly Cython/Python) will
-come in future releases.
+from C, Matlab, Julia, or Python.
 
 ArgyrisPack is available under the BSD-3 License. See the file `License.txt` for
 more details.
@@ -42,9 +41,10 @@ to pass one symbol or another. To compile the mex-files, run
     make
 
 at the MATLAB prompt. MATLAB (to the best of my knowledge) assumes MEX files on
-*nix platforms will use the gcc, but you may need to tweak your local MEX settings
-to compile the binaries correctly. Julia just needs a `.so` file in the current
-path to work.
+*nix platforms will use the gcc, but you may need to tweak your local MEX
+settings to compile the binaries correctly. Julia just needs `libargyris_pack.so`
+in the current path to work. Python needs for the .so to be in the working path
+as well.
 
 ArgyrisPack currently targets GNU/Linux and OS X. GCC 4.2 and later should work;
 please let us know if this is not the case. In principle, there is nothing
@@ -74,6 +74,19 @@ There are a few additional files; we wrote a 'multiply by a diagonal matrix'
 routine, wrappers to make `dgemm` work with row or column order, as well as a
 symbolic (`symbolic.py` and `symbolic.m`) version of the Argyris element to
 verify the numerical computations.
+
+Running the Tests
+-----------------
+The tests are currently implemented in Python. They require SAGE to be installed
+and used as a library. This is because the tests work by interpolating the
+Argyris polynomials on a physical element and then comparing the symbolic
+results with the numerical results. To run the results from SAGE, go to the root
+directory of ArgyrisPack and execute
+
+    import ap.test; ap.test.run()
+
+The meshing software has tests, but these are not linked to the numerical tests
+at the moment.
 
 Authors
 -------
