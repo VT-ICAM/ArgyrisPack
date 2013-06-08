@@ -16,7 +16,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         double* weights;
         double* mass;
         mwSignedIndex quadPoints;
-        int i;
 
         /* check input. */
         if (nrhs != 4) {
