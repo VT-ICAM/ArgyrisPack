@@ -18,12 +18,10 @@ function ap_ref_values{T}(x::Vector{T}, y::Vector{T})
 # evaluate the 21 Argyris basis functions at quadrature points specified by
 # 'points'.
     check_size(x,y)
-
     function_values = zeros(21,size(x)[1])
     ccall(__ap_ref_values, Void,
           (Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}),
           x, y, length(x), function_values)
-
     return function_values
 end
 
@@ -31,13 +29,11 @@ function ap_ref_gradients{T}(x::Vector{T}, y::Vector{T})
 # evaluate the derivatives of the 21 Argyris basis functions at quadrature
 # quadrature points specified by 'points'.
     check_size(x,y)
-
     dx = zeros(21,size(x)[1])
     dy = zeros(21,size(x)[1])
     ccall(__ap_ref_gradients, Void,
           (Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}, Ptr{Float64}),
           x, y, size(x)[1], dx, dy)
-
     return dx, dy
 end
 
@@ -53,7 +49,6 @@ function ap_ref_hessians{T}(x::Vector{T}, y::Vector{T})
           (Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}, Ptr{Float64},
            Ptr{Float64}),
           x, y, length(x), dxx, dxy, dyy)
-
     return dxx, dxy, dyy
 end
 
@@ -63,29 +58,24 @@ function ap_physical_maps{T}(x::Vector{T}, y::Vector{T})
     if length(x) != 3
         error("There should be three corners to a triangle.")
     end
-
     C = zeros(21,21)
     B = zeros(2,2)
     b = zeros(2)
-    Th = zeros(3,3)
     ccall(__ap_physical_maps, Void,
-          (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-           Ptr{Float64}),
-          x, y, C, B, b, Th)
-
-    return C, B, b, Th
+          (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}),
+          x, y, C, B, b)
+    return C, B, b
 end
 
 function ap_physical_values(C, ref_values)
 # Use the change-of-basis matrix C to convert reference values to physical values.
     check_transformations(C)
-    check_reference_values(ref_values)
+    check_ref_values(ref_values)
 
     function_values = zeros(21,size(ref_values)[2])
     ccall(__ap_physical_values, Void, (Ptr{Float64}, Ptr{Float64}, Int32,
           Ptr{Float64}), C, ref_values, size(ref_values)[2],
           function_values)
-
     return function_values
 end
 
@@ -93,7 +83,7 @@ function ap_physical_gradients(C, B, ref_dx, ref_dy)
 # evaluate the derivatives of the 21 Argyris basis functions given values of
 # the derivatives on the reference triangle.
     check_transformations(C,B)
-    check_reference_values(ref_dx, ref_dy)
+    check_ref_values(ref_dx, ref_dy)
 
     dx = zeros(size(ref_dx))
     dy = zeros(size(ref_dx))
@@ -101,17 +91,13 @@ function ap_physical_gradients(C, B, ref_dx, ref_dy)
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Int32,
            Ptr{Float64}, Ptr{Float64}),
           C, B, ref_dx, ref_dy, size(ref_dx)[2], dx, dy)
-
     return dx, dy
 end
 
-function ap_physical_hessians(C, Th, ref_dxx, ref_dxy, ref_dyy)
+function ap_physical_hessians(C, B, ref_dxx, ref_dxy, ref_dyy)
 # Evaluate second derivatives of the basis functions given reference values.
-    check_transformations(C)
-    if size(Th) != (3,3)
-        error("Incorrect dimensions in the 3x3 'Theta' matrix.")
-    end
-    check_reference_values(ref_dxx, ref_dxy, ref_dyy)
+    check_transformations(C,B)
+    check_ref_values(ref_dxx, ref_dxy, ref_dyy)
 
     dxx = zeros(size(ref_dxx))
     dxy = zeros(size(ref_dxx))
@@ -119,30 +105,27 @@ function ap_physical_hessians(C, Th, ref_dxx, ref_dxy, ref_dyy)
     ccall(__ap_physical_hessians, Void,
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
            Int32, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}),
-          C, Th, ref_dxx, ref_dxy, ref_dyy, size(ref_dxx)[2], dxx, dxy, dyy)
-
+          C, B, ref_dxx, ref_dxy, ref_dyy, size(ref_dxx)[2], dxx, dxy, dyy)
     return dxx, dxy, dyy
 end
 
 function ap_matrix_mass(C, B, ref_functions, weights)
-# Evaluate the ref mass matrix given reference values.
+# Evaluate the mass matrix given reference values.
     check_transformations(C,B)
-    check_reference_values(ref_values)
+    check_ref_values(ref_values)
     check_weights(ref_values, weights)
-
     mass = zeros(21,21)
     ccall(__ap_matrix_mass, Void,
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Int32,
            Ptr{Float64}),
           C, B, ref_values, weights, size(weights)[1], mass)
-
     return mass
 end
 
 function ap_matrix_stiffness(C, B, ref_dx, ref_dy, weights)
-# Evaluate the ref stiffness matrix given reference values.
+# Evaluate the stiffness matrix given reference values.
     check_transformations(C,B)
-    check_reference_values(ref_dx, ref_dy)
+    check_ref_values(ref_dx, ref_dy)
     check_weights(ref_dx, weights)
 
     stiffness = zeros(21,21)
@@ -150,23 +133,21 @@ function ap_matrix_stiffness(C, B, ref_dx, ref_dy, weights)
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
            Int32, Ptr{Float64}),
           C, B, ref_dx, ref_dy, weights, size(weights)[1], stiffness)
-
     return stiffness
 end
 
-function ap_matrix_biharmonic(C, B, Th, ref_dxx, ref_dxy, ref_dyy, weights)
-# Evaluate the ref biharmonic matrix given reference values.
-    check_transformations(C,B,Th)
-    check_reference_values(ref_dxx, ref_dxy, ref_dyy)
+function ap_matrix_biharmonic(C, B, ref_dxx, ref_dxy, ref_dyy, weights)
+# Evaluate the biharmonic matrix given reference values.
+    check_transformations(C,B)
+    check_ref_values(ref_dxx, ref_dxy, ref_dyy)
     check_weights(ref_dxx, weights)
 
     biharmonic = zeros(21,21)
     ccall(__ap_matrix_biharmonic, Void,
           (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
-           Ptr{Float64}, Ptr{Float64}, Int32, Ptr{Float64}),
-          C, B, Th, ref_dxx, ref_dxy, ref_dyy, weights, size(weights)[1],
+           Ptr{Float64}, Int32, Ptr{Float64}),
+          C, B, ref_dxx, ref_dxy, ref_dyy, weights, size(weights)[1],
           biharmonic)
-
     return biharmonic
 end
 
@@ -187,7 +168,7 @@ function check_size(arrays...)
 end
 
 function check_transformations(transformations...)
-# check the sizes of the matrix transformations C, B, and Th.
+# check the sizes of the matrix transformations C and B.
     if size(transformations[1]) != (21,21)
         error("Incorrect dimensions in the 21x21 'C' matrix.")
     end
@@ -196,14 +177,9 @@ function check_transformations(transformations...)
             error("Incorrect dimensions in the 2x2 'B' matrix.")
         end
     end
-    if length(transformations) > 2
-        if size(transformations[3]) != (3,3)
-            error("Incorrect dimensions in the 3x3 'Theta' matrix.")
-        end
-    end
 end
 
-function check_reference_values(values...)
+function check_ref_values(values...)
 # Raise an exception if the input arrays do not all have 21 rows and the same
 # number of columns.
     if size(values[1])[1] != 21
