@@ -1,12 +1,11 @@
 #include "mex.h"
 #include "blas.h"
-
 #include "order_logic.h"
 #include "physical_hessians.c"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-        double *Th, *C;
+        double *B, *C;
         double *refdxx, *refdxy, *refdyy;
         double *dxx, *dxy, *dyy;
         mwSignedIndex quadPoints;
@@ -15,15 +14,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         /* check input. */
         if (nrhs != 5) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
-                                  "Requires five arguements.");
+                                  "Requires five arguments.");
         }
         if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0]))) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
-                                  "The C matrix must be the first arguement.");
+                                  "The C matrix must be the first argument.");
         }
-        if ((3 != mxGetN(prhs[1])) || (3 != mxGetM(prhs[1]))) {
+        if ((2 != mxGetN(prhs[1])) || (2 != mxGetM(prhs[1]))) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
-                                  "The Th matrix must be the second arguement.");
+                                  "The B matrix must be the second argument.");
         }
         for (i = 2; i < 5; i++) {
                 if (21 != mxGetM(prhs[i])) {
@@ -33,12 +32,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 }
                 if (mxGetN(prhs[2]) != mxGetN(prhs[i])) {
                         mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalHessiansMex",
-                                          "Mismatch in number of quadrature points.");
+                                          "Mismatch in number of quadrature "
+                                          "points.");
                 }
         }
 
         C = mxGetPr(prhs[0]);
-        Th = mxGetPr(prhs[1]);
+        B = mxGetPr(prhs[1]);
         refdxx = mxGetPr(prhs[2]);
         refdxy = mxGetPr(prhs[3]);
         refdyy = mxGetPr(prhs[4]);
@@ -57,6 +57,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         dxy = mxGetPr(plhs[1]);
         dyy = mxGetPr(plhs[2]);
 
-        ap_physical_hessians(C, Th, refdxx, refdxy, refdyy, quadPoints,
-                           dxx, dxy, dyy);
+        ap_physical_hessians(C, B, refdxx, refdxy, refdyy, quadPoints, dxx, dxy,
+                             dyy);
 }

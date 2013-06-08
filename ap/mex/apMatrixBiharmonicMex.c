@@ -11,7 +11,7 @@
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-        double *C, *B, *Th;
+        double *C, *B;
         double *ref_dxx, *ref_dxy, *ref_dyy;
         double* weights;
         double* biharmonic;
@@ -19,9 +19,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         int i;
 
         /* check input. */
-        if (nrhs != 7) {
+        if (nrhs != 6) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
-                                  "Requires seven arguments.");
+                                  "Requires six arguments.");
         }
         if ((21 != mxGetN(prhs[0])) || (21 != mxGetM(prhs[0]))) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
@@ -31,12 +31,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                   "The B matrix must be the second argument.");
         }
-        if ((3 != mxGetN(prhs[2])) || (3 != mxGetM(prhs[2]))) {
-                mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
-                                  "The Th matrix must be the third argument.");
-        }
-        for (i = 3; i < 6; i++) {
-                if (mxGetN(prhs[i]) != mxGetN(prhs[3])) {
+        for (i = 2; i < 5; i++) {
+                if (mxGetN(prhs[i]) != mxGetN(prhs[2])) {
                         mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                           "Mismatch in number of quadrature "
                                           "points.");
@@ -49,25 +45,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 }
 
         }
-        if (mxGetN(prhs[6]) != mxGetN(prhs[3]) &&
-            mxGetM(prhs[6]) != mxGetN(prhs[3])) {
+        if (mxGetN(prhs[5]) != mxGetN(prhs[2]) &&
+            mxGetM(prhs[5]) != mxGetN(prhs[2])) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                                   "Mismatch in number of weights "
                                   "and number of quadrature points.");
         }
-        if (mxGetM(prhs[6]) != 1 && mxGetN(prhs[6]) != 1) {
+        if (mxGetM(prhs[5]) != 1 && mxGetN(prhs[5]) != 1) {
             mexErrMsgIdAndTxt("ARGYRISPACK:apMatrixBiharmonicMex",
                               "The weights must be in a one-dimensional array.");
         }
 
         C          = mxGetPr(prhs[0]);
         B          = mxGetPr(prhs[1]);
-        Th         = mxGetPr(prhs[2]);
-        ref_dxx    = mxGetPr(prhs[3]);
-        ref_dxy    = mxGetPr(prhs[4]);
-        ref_dyy    = mxGetPr(prhs[5]);
-        weights    = mxGetPr(prhs[6]);
-        quadPoints = mxGetN(prhs[3]);
+        ref_dxx    = mxGetPr(prhs[2]);
+        ref_dxy    = mxGetPr(prhs[3]);
+        ref_dyy    = mxGetPr(prhs[4]);
+        weights    = mxGetPr(prhs[5]);
+        quadPoints = mxGetN(prhs[2]);
 
         /* check output. */
         if (nlhs != 1) {
@@ -78,6 +73,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         plhs[0]    = mxCreateDoubleMatrix(21, 21, mxREAL);
         biharmonic = mxGetPr(plhs[0]);
 
-        ap_matrix_biharmonic(C, B, Th, ref_dxx, ref_dxy, ref_dyy,
-                             weights, quadPoints, biharmonic);
+        ap_matrix_biharmonic(C, B, ref_dxx, ref_dxy, ref_dyy, weights,
+                             quadPoints, biharmonic);
 }
