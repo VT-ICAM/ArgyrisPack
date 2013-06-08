@@ -12,7 +12,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         double *C;
         double *B;
         double *b;
-        double *Th;
 
         /* check input. */
         if(nrhs!=2) {
@@ -30,19 +29,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         y = mxGetPr(prhs[1]);
 
         /* check output. */
-        if(nlhs!=4) {
+        if(nlhs!=3) {
                 mexErrMsgIdAndTxt("ARGYRISPACK:apPhysicalMapsMex",
-                                  "Four outputs required.");
+                                  "Three outputs required.");
         }
 
         plhs[0] = mxCreateDoubleMatrix(21,21,mxREAL);
         plhs[1] = mxCreateDoubleMatrix(2,2,mxREAL);
         plhs[2] = mxCreateDoubleMatrix(2,1,mxREAL);
-        plhs[3] = mxCreateDoubleMatrix(3,3,mxREAL);
 
         C  = mxGetPr(plhs[0]);
         B  = mxGetPr(plhs[1]);
         b  = mxGetPr(plhs[2]);
-        Th = mxGetPr(plhs[3]);
-        ap_physical_maps(x, y, C, B, b, Th);
+        ap_physical_maps(x, y, C, B, b);
 }
