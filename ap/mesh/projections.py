@@ -11,7 +11,7 @@ def lambert_azimuthal(coordinate_tripples, longitude_offset = pi/8,
     Required Arguments
     -------------------
     * coordinate_tripples : 3-column, N row tripples of sphere
-      coordinates.
+      (cartesian) coordinates.
 
     Optional Arguments
     -------------------
