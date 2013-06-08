@@ -3,7 +3,6 @@ void ap_matrix_stiffness(double* restrict C, double* restrict B,
                          double* restrict weights,
                          LAPACKINDEX num_points, double* restrict stiffness)
 {
-
         int i;
         double dx[21*num_points];
         double dx_scaled[21*num_points];
