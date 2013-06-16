@@ -44,6 +44,9 @@ class TestLagrangeMesh(object):
         """
         for mesh_file in mesh_files:
             self.nodes = nodes
+            # The mesh classes try to flatten nodes if possible. Do it here too.
+            if np.all(self.nodes[:, -1] == self.nodes[0, -1]):
+                self.nodes = self.nodes[:,0:-1]
             self.elements = elements
             self.edges = edges
             mesh = meshes.mesh_factory(*mesh_file)
