@@ -1,16 +1,18 @@
-May 16 2013 : V2.10 : Various bugfixes regarding the 2.0 release; Python
-                      interface and tests implemented. Changed the directory
-                      from 'numerical' to 'numeric'.
-May 16 2013 : V2.00 : Post-thesis release of new meshing materials and renaming
-                      of local to reference and global to physical.
-Oct 25 2012 : V1.06 : bugfix release; fixed a problem with the no-projection
-                      case.
-Oct 25 2012 : V1.05 : bugfix release; include a workaround to delete nodes that
-                      are not in any triangle.
-Oct 19 2012 : V1.04 : bugfix release; change runMESH.py to use the included
-                      rectangle.mesh.
-Oct 18 2012 : V1.03 : bugfix release; slight change in interface for
-                      construction of Argyris meshes. Includes sample mesh.
-Sep 20 2012 : V1.02 : bugfix release; also supports DGEMM_WRAPPER_TN macro.
-Sep 15 2012 : V1.01 : Removed unnecessary .geo and the test.c file
-Sep 14 2012 : V1.00 : Finished symbolic implementation; release to public under BSD-3
+June 16 2013 : V2.11 : Fix a bug in projections.py. Cleaned up Python code with
+                       help from pylint.
+June 8 2013  : V2.10 : Various bugfixes regarding the 2.0 release; Python
+                       interface and tests implemented. Changed the directory
+                       from 'numerical' to 'numeric'.
+May 16 2013  : V2.00 : Post-thesis release of new meshing materials and renaming
+                       of local to reference and global to physical.
+Oct 25 2012  : V1.06 : bugfix release; fixed a problem with the no-projection
+                       case.
+Oct 25 2012  : V1.05 : bugfix release; include a workaround to delete nodes that
+                       are not in any triangle.
+Oct 19 2012  : V1.04 : bugfix release; change runMESH.py to use the included
+                       rectangle.mesh.
+Oct 18 2012  : V1.03 : bugfix release; slight change in interface for
+                       construction of Argyris meshes. Includes sample mesh.
+Sep 20 2012  : V1.02 : bugfix release; also supports DGEMM_WRAPPER_TN macro.
+Sep 15 2012  : V1.01 : Removed unnecessary .geo and the test.c file
+Sep 14 2012  : V1.00 : Finished symbolic implementation; release to public under BSD-3
