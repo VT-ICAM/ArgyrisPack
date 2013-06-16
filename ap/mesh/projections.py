@@ -1,15 +1,15 @@
 #! /usr/bin/env python
+"""Map projections for use with geophysical data."""
 import numpy as np
-from math import pi
 
-def lambert_azimuthal(coordinate_tripples, longitude_offset = pi/8,
-                      latitude_offset = pi/8):
+def lambert_azimuthal(coordinate_tripples, longitude_offset = np.pi/8,
+                      latitude_offset = np.pi/8):
     """
     An area-preserving projection from geophysical coordinates to the
     plane.
 
     Required Arguments
-    -------------------
+    ------------------
     * coordinate_tripples : 3-column, N row tripples of sphere
       (cartesian) coordinates.
 
@@ -22,14 +22,22 @@ def lambert_azimuthal(coordinate_tripples, longitude_offset = pi/8,
     ------
     * the Lambert Azimuthal projection (not scaled) of the
     coordinate_tripples.
+
+    References
+    ----------
+    See Wolfram Mathworld
+
+        http://140.177.205.23/LambertAzimuthalEqual-AreaProjection.html
+
+    for details.
     """
     x = coordinate_tripples[0]
     y = coordinate_tripples[1]
     z = coordinate_tripples[2]
     # convert to latitude / longitude coordinates.
-    rho = np.sqrt(x**2) + np.sqrt(y**2) + np.sqrt(z**2)
-    azimuth = np.arctan2(y,x)                  # same as longitude
-    inclination = -1*(np.arccos(z/rho) - pi/2) # same as latitude
+    rho = np.sqrt(x**2 + y**2 + z**2)
+    azimuth = np.arctan2(y, x)                    # same as longitude
+    inclination = -1*(np.arccos(z/rho) - np.pi/2) # same as latitude
 
     # project to 2D.
     k = np.sqrt(2/(1 + np.cos(inclination - latitude_offset)

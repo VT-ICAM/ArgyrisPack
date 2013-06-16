@@ -1,7 +1,7 @@
 #! /usr/bin/env python
+"""Parsers for loading common finite element text formats."""
 import numpy as np
 import re
-import ap.mesh.meshtools
 
 def parser_factory(*args):
     """
@@ -87,8 +87,9 @@ class ParseMESHFormat(MeshParser):
     def __init__(self, mesh_file):
         self._mesh_file = mesh_file
 
-        elements = self._parse_section("Triangles",
-                                       lambda x : tuple(map(int,x.split()[0:-1])))
+        elements = \
+            self._parse_section("Triangles",
+                                lambda x : tuple(map(int, x.split()[0:-1])))
         self.elements = np.vstack(elements)
 
         nodes = self._parse_section("Vertices",
@@ -99,7 +100,8 @@ class ParseMESHFormat(MeshParser):
         # a .mesh value does not always have this section.
         try:
             self.edges = \
-                self._parse_section("Edges", lambda x : tuple(map(int,x.split())))
+                self._parse_section("Edges",
+                                    lambda x : tuple(map(int, x.split())))
         except ValueError:
             self.edges = list()
 
@@ -115,19 +117,19 @@ class ParseMESHFormat(MeshParser):
         parsed_section = []
         with open(self._mesh_file) as f:
             for line in f:
-                if (not found_section) and re.search(pattern,line):
+                if (not found_section) and re.search(pattern, line):
                     found_section = True
 
                 # if there is a lone number then we are on the next line. Ignore
                 # it.
-                if found_section and (not found_count) and re.search("^ *[0-9]+$",
-                                                                     line):
+                if found_section and not found_count \
+                    and re.search(r"^ *[0-9]+$", line):
                     found_count = True
                     continue
 
                 # if we have found another string then the section is over.
-                if found_section and found_count and re.search("^ *[A-Z]?[a-z]+",
-                                                               line):
+                if found_section and found_count \
+                    and re.search(r"^ *[A-Z]?[a-z]+", line):
                     break
 
                 if found_section and found_count and (len(line) > 1):
@@ -151,12 +153,7 @@ class ParseTXTFormat(MeshParser):
       coordinates.
     """
     __doc__ += MeshParser.__doc__
-    def __init__(self, file1, file2, special_borders = None,
-                 default_border = 'land'):
-        if special_borders:
-            raise NotImplementedError("Nonhomogeneous borders are not"
-                                      + " supported for this format.")
-
+    def __init__(self, file1, file2):
         # figure out which file corresponds to elements and which corresponds to
         # nodes. The node array must have more rows than the element array.
         array1 = np.loadtxt(file1)
@@ -170,7 +167,6 @@ class ParseTXTFormat(MeshParser):
 
         self.elements = np.loadtxt(elements_file, dtype=int)
         self.nodes = np.loadtxt(nodes_file, dtype=float)
-
         self.edges = list()
 
 class ParseMSHFormat(MeshParser):
@@ -191,14 +187,15 @@ class ParseMSHFormat(MeshParser):
         if mesh_format[0][0] != "2.2":
             raise ValueError("Unsupported .msh version")
 
-        elements = self._parse_section("Elements",
-                                       lambda x : tuple(map(int,x.split()[1:-1])))
+        elements = \
+            self._parse_section("Elements",
+                                lambda x : tuple(map(int, x.split()[1:-1])))
         # hard-coded list of triangular entities. See GMSH documentation for
         # more details.
-        triangles = map(lambda x : tuple(x[5:]),
-                        filter(lambda x : x[0] in [2,9,20,21,22,23,24,25], elements))
-        edges = map(lambda x : tuple(x[3:]) + tuple([x[2]]),
-                    filter(lambda x : x[0] in [1, 8], elements))
+        triangles = [x[5:] for x in elements
+                     if x[0] in [2, 9, 20, 21, 22, 23, 24, 25]]
+        edges = [x[3:] + x[2] for x in elements
+                 if x[0] in [1, 8]]
         try:
             self.elements = np.vstack(triangles)
         except ValueError as np_error:
@@ -226,23 +223,25 @@ class ParseMSHFormat(MeshParser):
 
         with open(self._mesh_file) as f:
             for line in f:
-                if (not found_section) and re.search(pattern,line):
+                if not found_section and re.search(pattern, line):
                     found_section = True
                     continue
 
                 # if there is a lone number then we are on the next line. Ignore
                 # it.
-                if found_section and (not found_count) and re.search("^ *[0-9]+$",
-                                                                     line):
+                if found_section and not found_count \
+                    and re.search(r"^ *[0-9]+$", line):
                     found_count = True
                     continue
 
                 # if we have found another string then the section is over.
-                if found_section and found_count and re.search("^ *\$\w+", line):
+                if found_section and found_count \
+                    and re.search(r"^ *\$\w+", line):
                     break
 
                 # correctly ignore blank lines.
-                if found_section and found_count and not re.match("\s+$", line):
+                if found_section and found_count \
+                    and not re.match(r"\s+$", line):
                     parsed_section.append(line_parse_function(line))
 
         if not found_section:

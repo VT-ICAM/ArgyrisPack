@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-import random
+"""Collection of classes for representing finite element meshes."""
 import numpy as np
 from collections import namedtuple
 import ap.mesh.meshtools as meshtools
@@ -30,7 +30,7 @@ def mesh_factory(*args, **kwargs):
     * borders        : a dictionary correlating names with GMSH 'Physical
       Line' attributes. For example,
 
-          borders = {'open' : (1,2)}
+          borders = {'open' : (1, 2)}
 
       will correlate edges on Physical Lines 1 and 2 with the 'open' edge
       collection.
@@ -67,7 +67,7 @@ class Mesh(object):
     * borders        : A dictionary correlating names with a tuple of
       GMSH physical line numbers. for example:
 
-          borders = {'no_flow' : (1,2,3), 'coast' : (4,5,6)}
+          borders = {'no_flow' : (1, 2, 3), 'coast' : (4, 5, 6)}
 
     * default_border : the name corresponding to the default edge
       collection. Defaults to "land".
@@ -124,17 +124,17 @@ class Mesh(object):
       and, additionally, for each edge collection save
       prefix + name + _edges.txt.
     """
-    def __init__(self, parsed_mesh, borders=dict(), default_border="land",
-                 ignore_given_edges = False, projection=lambda x : x):
+    def __init__(self, parsed_mesh, borders = None, default_border="land",
+                 ignore_given_edges = False, projection = lambda x : x):
+        if borders == None:
+            borders = {}
         self.elements = parsed_mesh.elements
-
         self.nodes = meshtools.project_nodes(projection, parsed_mesh.elements,
                                              parsed_mesh.nodes,
                                              attempt_flatten = True)
-
         self.edge_collections = \
-            meshtools.organize_edges(parsed_mesh.edges, borders=borders,
-                                     default_border=default_border)
+            meshtools.organize_edges(parsed_mesh.edges, borders = borders,
+                                     default_border = default_border)
 
         if max(map(len, self.edge_collections.values())) == 0 \
                 or ignore_given_edges:
@@ -164,6 +164,26 @@ class Mesh(object):
         return self.elements.shape[1]**2 * self.elements.shape[0]
 
     def savetxt(self, prefix=""):
+        """
+        Save the mesh as a series of text files:
+
+        * prefix_nodes.txt    : nodal coordinates of the mesh.
+
+        * prefix_elements.txt : element connectivity matrix of the mesh.
+
+        * prefix_interior_nodes.txt : list of interior nodes of the mesh.
+
+        * prefix_NAME_boundary_nodes.txt : list of boundary nodes of the mesh
+          corresponding to the border with name NAME.
+
+        * prefix_NAME_edges.txt : edges in boundary collection NAME, saved in the
+          traditional GMSH order.
+
+        Optional Arguments
+        ------------------
+        prefix : a string prepended to each of the file names. If nonempty,
+        prepend exactly 'prefix + "_".'
+        """
         if prefix:
             prefix += "_"
         np.savetxt(prefix + "nodes.txt", self.nodes)
@@ -241,36 +261,43 @@ class ArgyrisMesh(object):
     Properties
     ----------
     * elements : a numpy array listing the node numbers of every element.
+
     * edges_by_midpoint : a dictionary associating each element with a certain
       edge (indexed by the normal derivative basis function number)
+
     * node_collections : a list of ArgyrisNodeCollection objects.
+
     * nodes : a numpy array of node coordinates.
 
     Methods
     -------
     * savetxt: save the mesh in multiple text files.
     """
-    def __init__(self, parsed_mesh, borders=dict(), default_border="land",
-                 ignore_given_edges=False, projection=lambda x : x):
+    def __init__(self, parsed_mesh, borders = None, default_border="land",
+                 ignore_given_edges = False, projection = lambda x : x):
+        if borders == None:
+            borders = dict()
         if parsed_mesh.elements.shape[1] != 6:
             raise NotImplementedError("Support for changing mesh order is not "
                                       + "implemented.")
             # parsed_mesh = meshtools.change_order(parsed_mesh, 2)
 
-        lagrange_mesh = Mesh(parsed_mesh, borders=borders,
-                             default_border=default_border, projection=projection,
-                             ignore_given_edges=ignore_given_edges)
+        lagrange_mesh = Mesh(parsed_mesh, borders = borders,
+                             default_border = default_border,
+                             projection = projection,
+                             ignore_given_edges = ignore_given_edges)
 
         # if not projected, try to flatten as a last resort.
         if (lagrange_mesh.nodes.shape[1] == 3 and
-            np.all(lagrange_mesh.nodes[:,2] == lagrange_mesh.nodes[0,2])):
-            lagrange_mesh.nodes = lagrange_mesh.nodes[:,0:2]
+            np.all(lagrange_mesh.nodes[:, 2] == lagrange_mesh.nodes[0, 2])):
+            lagrange_mesh.nodes = lagrange_mesh.nodes[:, 0:2]
 
         if lagrange_mesh.nodes.shape[1] != 2:
             raise ValueError("Requires a 2D mesh; try a different projection.")
 
-        self.elements = np.zeros((lagrange_mesh.elements.shape[0],21), dtype=np.int)
-        self.elements[:,0:6] = lagrange_mesh.elements
+        self.elements = np.zeros((lagrange_mesh.elements.shape[0], 21),
+                                 dtype = np.int)
+        self.elements[:, 0:6] = lagrange_mesh.elements
 
         # solve a lot of orientation problems later by ensuring that the corner
         # nodes are in sorted order.
@@ -278,11 +305,12 @@ class ArgyrisMesh(object):
             self._sort_corners_increasing(element[0:6])
 
         # stack the extra basis function nodes on the corners.
-        max_lagrange_mesh = lagrange_mesh.elements.max() + 1;
+        max_lagrange_mesh = lagrange_mesh.elements.max() + 1
         self.stacked_nodes = \
             {node_number : np.arange(max_lagrange_mesh + 5*count,
                                      max_lagrange_mesh + 5*count + 5)
-             for count, node_number in enumerate(np.unique(self.elements[:,0:3]))}
+             for count, node_number in \
+             enumerate(np.unique(self.elements[:, 0:3]))}
 
         for element in self.elements:
             element[6:11]  = self.stacked_nodes[element[0]]
@@ -293,10 +321,10 @@ class ArgyrisMesh(object):
 
         # update the edges by elements.
         self.edges_by_midpoint = dict()
-        edge_type_to_nodes = {1 : (0,1,18), 2 : (0,2,19), 3 : (1,2,20)}
+        edge_type_to_nodes = {1 : (0, 1, 18), 2 : (0, 2, 19), 3 : (1, 2, 20)}
         for element_number, element in enumerate(self.elements):
-            for edge_type in range(1,4):
-                (i,j,k) = edge_type_to_nodes[edge_type]
+            for edge_type in range(1, 4):
+                (i, j, k) = edge_type_to_nodes[edge_type]
                 edge = ArgyrisEdge(element_number = element_number + 1,
                                    edge_type = edge_type,
                                    edge = (element[i], element[j], element[k]))
@@ -310,14 +338,15 @@ class ArgyrisMesh(object):
         # set coordinates for the new nodes.
         self.nodes = np.zeros((self.elements.max(), 2))
         self.nodes.fill(np.nan)
-        self.nodes[0:lagrange_mesh.nodes.shape[0],:] = lagrange_mesh.nodes
+        self.nodes[0:lagrange_mesh.nodes.shape[0], :] = lagrange_mesh.nodes
         for stacked_node, new_nodes in self.stacked_nodes.items():
             self.nodes[new_nodes - 1] = self.nodes[stacked_node - 1]
 
         # Construct the edge collections.
+        self.node_collections = []
         self._build_node_collections(lagrange_mesh)
 
-    def savetxt(self, prefix=""):
+    def savetxt(self, prefix = ""):
         """
         Save the following text files:
 
@@ -366,9 +395,9 @@ class ArgyrisMesh(object):
         corner nodes and midpoints from the lagrange edge data and saving
         the interior nodes as everything that was not a boundary node.
         """
-        self.node_collections = []
         interior_function_values = set(lagrange_mesh.elements[:, 0:3].flatten())
-        interior_normal_derivatives = set(lagrange_mesh.elements[:, 3:6].flatten())
+        interior_normal_derivatives = \
+            set(lagrange_mesh.elements[:, 3:6].flatten())
 
         for border_name, collection in lagrange_mesh.edge_collections.items():
             # save left points of edges.
@@ -396,26 +425,26 @@ class ArgyrisMesh(object):
             [1 2 3 7 8 12 13 17 18 9 10 11 14 15 16 19 20 21 4 6 5].
         """
 
-        normal_derivatives1 = self.elements[:,3].copy()
-        normal_derivatives2 = self.elements[:,5].copy()
-        normal_derivatives3 = self.elements[:,4].copy()
+        normal_derivatives1 = self.elements[:, 3].copy()
+        normal_derivatives2 = self.elements[:, 5].copy()
+        normal_derivatives3 = self.elements[:, 4].copy()
 
-        first_nodes  = self.elements[:,6:11].copy()
-        second_nodes = self.elements[:,11:16].copy()
-        third_nodes  = self.elements[:,16:21].copy()
+        first_nodes  = self.elements[:, 6:11].copy()
+        second_nodes = self.elements[:, 11:16].copy()
+        third_nodes  = self.elements[:, 16:21].copy()
 
-        self.elements[:,18]    = normal_derivatives1
-        self.elements[:,19]    = normal_derivatives2
-        self.elements[:,20]    = normal_derivatives3
+        self.elements[:, 18]    = normal_derivatives1
+        self.elements[:, 19]    = normal_derivatives2
+        self.elements[:, 20]    = normal_derivatives3
 
-        self.elements[:,3:5]   = first_nodes[:,0:2]
-        self.elements[:,9:12]  = first_nodes[:,2:5]
+        self.elements[:, 3:5]   = first_nodes[:, 0:2]
+        self.elements[:, 9:12]  = first_nodes[:, 2:5]
 
-        self.elements[:,5:7]   = second_nodes[:,0:2]
-        self.elements[:,12:15] = second_nodes[:,2:5]
+        self.elements[:, 5:7]   = second_nodes[:, 0:2]
+        self.elements[:, 12:15] = second_nodes[:, 2:5]
 
-        self.elements[:,7:9]   = third_nodes[:,0:2]
-        self.elements[:,15:18] = third_nodes[:,2:5]
+        self.elements[:, 7:9]   = third_nodes[:, 0:2]
+        self.elements[:, 15:18] = third_nodes[:, 2:5]
 
 class ArgyrisNodeCollection(object):
     """
@@ -426,9 +455,12 @@ class ArgyrisNodeCollection(object):
     ------------------
     * function_values : set of basis function numbers that approximate function
       values on the Argyris mesh.
+
     * normal_derivatives : set of the node numbers corresponding to normal
       derivative basis functions.
+
     * edges : set of tuples corresponding to (endpoint, endpoint, midpoint)
+
     * mesh : the relevant Argyris mesh.
 
     Optional Arguments
@@ -462,10 +494,10 @@ class ArgyrisNodeCollection(object):
         # Use list comprehensions because they do the same thing in python2.7
         # and python3.*; *.values() became an iterator in python3000.
         np.savetxt(prefix + self.name + "_all.txt",
-                   np.unique(np.hstack([x for x in self.stacked_nodes.values()] +
-                                       [x for x in self.stacked_nodes.keys()] +
-                                       [x for x in self.normal_derivatives])),
-                   "%d")
+                   np.unique(np.hstack(
+                       [x for x in self.stacked_nodes.values()] +
+                       [x for x in self.stacked_nodes.keys()] +
+                       [x for x in self.normal_derivatives])), "%d")
 
     def __str__(self):
         """For interactive debugging use."""

@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+"""Various algorithms for meshes that don't fit anywhere else."""
 import numpy as np
 
 def extract_boundary_edges(elements):
@@ -40,11 +41,11 @@ def extract_boundary_edges(elements):
     for element in elements:
         # Guarantee uniqueness of edges by sorting the nodes. At the end map the
         # sorted versions back to the original versions.
-        local_edges = [(element[i],) + (element[j],) +
+        local_edges = [(element[i], ) + (element[j], ) +
                        tuple(element[3+i*side_nodes:3+(i+1)*side_nodes])
-                       + (-1,) for (i,j) in [(0,1), (1,2), (2,0)]]
+                       + (-1, ) for (i, j) in [(0, 1), (1, 2), (2, 0)]]
 
-        local_sorted_edges = list(map(lambda t : tuple(sorted(t)), local_edges))
+        local_sorted_edges = [tuple(sorted(t)) for t in local_edges]
         original_order.update(zip(local_sorted_edges, local_edges))
 
         for edge in local_sorted_edges:
@@ -53,9 +54,10 @@ def extract_boundary_edges(elements):
             else:
                 sorted_edges.add(edge)
 
-    return list(map(lambda t : original_order[t], sorted_edges))
+    return [original_order[t] for t in sorted_edges]
 
-def project_nodes(projection, elements, original_nodes, attempt_flatten = False):
+def project_nodes(projection, elements, original_nodes,
+                  attempt_flatten = False):
     """
     Given a projection and components of a finite element mesh, project
     the nodes with the supplied function. For quadratics, recalculate
@@ -78,8 +80,8 @@ def project_nodes(projection, elements, original_nodes, attempt_flatten = False)
     A numpy array of the projected nodes.
     """
     if attempt_flatten:
-        if np.all(original_nodes[:,-1] == original_nodes[0,-1]):
-            nodes = original_nodes[:,0:-1]
+        if np.all(original_nodes[:, -1] == original_nodes[0, -1]):
+            nodes = original_nodes[:, 0:-1]
             return nodes
 
     nodes = np.array([projection(node) for node in original_nodes])
@@ -90,10 +92,10 @@ def project_nodes(projection, elements, original_nodes, attempt_flatten = False)
     # fix quadratics.
     elif elements.shape[1] == 6:
         for i in range(2):
-            for (j, k) in [(0,1), (1,2), (2,0)]:
-                nodes[elements[:,j + 3] - 1,i] = \
-                    0.5*(nodes[elements[:,j] - 1,i] + nodes[elements[:,k] - 1,i])
-
+            for (j, k) in [(0, 1), (1, 2), (2, 0)]:
+                nodes[elements[:, j + 3] - 1, i] = \
+                    0.5*(nodes[elements[:, j] - 1, i] +
+                         nodes[elements[:, k] - 1, i])
     return nodes
 
 def change_order(mesh, order):
@@ -109,30 +111,53 @@ def change_order(mesh, order):
         # Guarantee midpoint uniqueness by numbering midpoints based on the
         # minimum node on the edge.
         for element_number, element in enumerate(mesh.elements):
-            local_edges = [(element[i],element[j])
-                            for (i,j) in [(0,1), (1,2), (2,0)]]
+            local_edges = [(element[i], element[j])
+                            for (i, j) in [(0, 1), (1, 2), (2, 0)]]
             for i, edge in enumerate(local_edges):
-                new_elements[element_number,i + 3] = \
+                new_elements[element_number, i + 3] = \
                     corner_to_midpoint[min(edge)]
 
         new_nodes = np.zeros((new_elements.shape[0], mesh.nodes.shape[1]))
-        new_nodes[0:mesh.nodes.shape[0],:] = mesh.nodes
-        for (i,j) in [(0,1), (1,2), (2,0)]:
-            new_nodes[np.unique(new_elements[:,3 + i])] = 0.5*(
-                mesh.nodes[new_elements[:,i],:]
-                + mesh.nodes[new_elements[:,j],:])
+        new_nodes[0:mesh.nodes.shape[0], :] = mesh.nodes
+        for (i, j) in [(0, 1), (1, 2), (2, 0)]:
+            new_nodes[np.unique(new_elements[:, 3 + i])] = 0.5*(
+                mesh.nodes[new_elements[:, i], :]
+                + mesh.nodes[new_elements[:, j], :])
     else:
         raise NotImplementedError("Unsupported mesh order conversion")
 
-def organize_edges(edges, borders={}, default_border="land"):
+def organize_edges(edges, borders = None, default_border = 'land'):
+    """
+    Organize edges in to various collections specified by borders.
+
+    Required Arguments
+    ------------------
+    * edges          : List of edges of the form
+
+        (node_number, node_number, ... , edge_type)
+
+                       The sorting process requires edge_type to be the last
+                       entry in each tuple.
+
+    Optional Arguments
+    ------------------
+    * borders        : a dictionary correlating border numbers with names. For
+                       example,
+
+          borders = {'ocean_in' : 1, 'ocean_out' : 2}
+
+    * default_border : the border to place all other edges in. Defaults to
+                      'land'.
+    """
+    if borders == None:
+        borders = dict()
     if default_border in borders:
         raise ValueError("Specific border and default border share same name")
 
     edge_collections = dict()
     edge_collections[default_border] = set(edges)
     for border, labels in borders.items():
-        edge_collections[border] = set(filter(lambda x : x[-1] in labels,
-                                              edge_collections[default_border]))
+        edge_collections[border] = {t for t in edge_collections[default_border]
+                                    if t[-1] in labels}
         edge_collections[default_border] -= edge_collections[border]
-
     return edge_collections
