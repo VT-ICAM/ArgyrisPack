@@ -1,7 +1,9 @@
 #! /usr/bin/env python
 """Parsers for loading common finite element text formats."""
-import numpy as np
+import abc
 import re
+import numpy as np
+
 
 def parser_factory(*args):
     """
@@ -11,7 +13,7 @@ def parser_factory(*args):
     if re.search(r"\.mesh\s*$", args[0]):
         parser = ParseMESHFormat(args[0])
     elif re.search(r"\.msh\s*$", args[0]):
-        raise NotImplementedError(".msh format not yet supported")
+        parser = ParseMSHFormat(*args)
     elif re.search(r"\.txt\s*$", args[0]) and re.search(r"\.txt$", args[1]):
         parser = ParseTXTFormat(*args)
     else:
@@ -19,61 +21,72 @@ def parser_factory(*args):
 
     return parser
 
+
 class MeshParser(object):
     # the rest of this docstring will be filled in by particular classes.
     """
     Properties
     ----------
-    * elements : A numpy array listing the node numbers of every element;
-      for example,
+    * elements : Array listing the node numbers of every element; for
+                 example,
 
         print(t.elements)
 
-        => [[ 1  9  4 10 11  8]
-            [ 1  2  9  5 12 10]
-            [ 2  3  9  6 13 12]
-            [ 3  4  9  7 11 13]]
+        => [[1  9  4 10 11  8]
+            [1  2  9  5 12 10]
+            [2  3  9  6 13 12]
+            [3  4  9  7 11 13]]
 
       for a quadratic mesh with four elements.
 
-    * nodes : a array of every node's coordinates, where row number
-      corresponds to node number - 1.
+    * nodes : Array of every node's coordinates, where row number
+              corresponds to node number - 1.
 
-    * edges :
+    * edges : list of tuples containing edge information; the last entry
+              is the attribute 'number' on which the edge lies.
 
-        print(t.edge_collections)
-        => {'boundary': set([(3, 4, 7, 3), (4, 1, 8, 4), (2, 3, 6, 2),
-            (1, 2, 5, 1)])}
+        print(t.edges)
+
+        => [(1, 2, 1), (2, 3, 2), (3, 4, 3), (4, 1, 4)]
 
     Methods
     -------
-    * savetxt() : Save the mesh data (edge collections, nodes, elements).
+    * savetxt() : Save the mesh data (edges, nodes, elements).
     """
-    def __init__(self):
-        raise NotImplementedError("This function must be defined by an "
-                                  + "inheriting class.")
+    __metaclass__ = abc.ABCMeta
 
-    def savetxt(self):
+    @abc.abstractmethod
+    def __init__(self):
+        self.edges = None
+        self.elements = None
+        self.nodes = None
+        return
+
+    @abc.abstractmethod
+    def _parse_section(self, pattern, line_parse_function, has_count=True):
+        """
+        Common mesh formats have labeled sections containing relevant
+        data. Apply the function 'line_parse_function' to every line in
+        the file following some 'pattern'. Stopping criteria must be
+        implemented on a per-filetype basis.
+        """
+        pass
+
+    def savetxt(self, prefix=""):
         """
         Save the output files of the parsed mesh. Assumes C0 elements.
 
-            nodes.txt    : all nodal coordinates
-            elements.txt : the element array for Argyris
-
-        and for each edge collection with name NAME:
-
-            NAME_edges.txt : list of edges corresponding to name NAME.
+            nodes.txt    : nodal coordinates array.
+            elements.txt : element connectivity array.
+            edges.txt    : edge array (if it exists).
         """
-        np.savetxt("nodes.txt", self.nodes)
-        np.savetxt("elements.txt", self.elements, fmt="%d")
+        if prefix:
+            prefix += "_"
+        np.savetxt(prefix + "nodes.txt", self.nodes)
+        np.savetxt(prefix + "elements.txt", self.elements, fmt="%d")
+        if self.edges:
+            np.savetxt(prefix + "edges.txt", self.edges, fmt="%d")
 
-        for name, collection in self.edge_collections.items():
-            np.savetxt(name + '_nodes.txt', np.fromiter(collection, int),
-                       fmt='%d')
-
-    def _parse_section(self, pattern, line_parse_function):
-        raise NotImplementedError("This function must be defined by an "
-                                  + "inheriting class.")
 
 class ParseMESHFormat(MeshParser):
     """
@@ -84,66 +97,68 @@ class ParseMESHFormat(MeshParser):
     * mesh_file : file path to the .mesh file.
     """
     __doc__ += MeshParser.__doc__
+
     def __init__(self, mesh_file):
         self._mesh_file = mesh_file
 
         elements = \
             self._parse_section("Triangles",
-                                lambda x : tuple(map(int, x.split()[0:-1])))
+                                lambda x: tuple(map(int, x.split()[0:-1])))
         self.elements = np.vstack(elements)
 
         nodes = self._parse_section("Vertices",
-                            lambda x : (tuple(map(float, x.split()[0:-1])),
-                                        int(x.split()[-1])))
-        self.nodes = np.vstack(map(lambda x : x[0], nodes))
+                                    lambda x: (tuple(map(float,
+                                                         x.split()[0:-1])),
+                                               int(x.split()[-1])))
+        self.nodes = np.vstack([x[0] for x in nodes])
 
         # a .mesh value does not always have this section.
         try:
             self.edges = \
                 self._parse_section("Edges",
-                                    lambda x : tuple(map(int, x.split())))
+                                    lambda x: tuple(map(int, x.split())))
         except ValueError:
             self.edges = list()
 
     def _parse_section(self, pattern, line_parse_function):
         """
         Parse one chunk of the file, starting with some regex. Apply the
-        function 'line_parse_function' to each line in the section. Return a
+        function `line_parse_function` to each line in the section. Return a
         list of the results. Stop when we get to another section (triggered by
         reaching another line with alphabetical characters).
         """
         found_section = False
         found_count = False
         parsed_section = []
-        with open(self._mesh_file) as f:
-            for line in f:
+        with open(self._mesh_file) as mesh_file:
+            for line in mesh_file:
                 if (not found_section) and re.search(pattern, line):
                     found_section = True
 
-                # if there is a lone number then we are on the next line. Ignore
-                # it.
-                if found_section and not found_count \
-                    and re.search(r"^ *[0-9]+$", line):
-                    found_count = True
-                    continue
+                # if there is a lone number then we are on the next line.
+                # Ignore it.
+                if found_section:
+                    if not found_count and re.search(r"^ *[0-9]+$", line):
+                        found_count = True
+                        continue
 
-                # if we have found another string then the section is over.
-                if found_section and found_count \
-                    and re.search(r"^ *[A-Z]?[a-z]+", line):
-                    break
+                    # if we have found another string then the section is over.
+                    if found_count and re.search(r"^ *[A-Z]?[a-z]+", line):
+                        break
 
-                if found_section and found_count and (len(line) > 1):
-                    parsed_section.append(line_parse_function(line))
+                    if found_count and (len(line) > 1):
+                        parsed_section.append(line_parse_function(line))
 
         if not found_section:
             raise ValueError("Section with pattern " + pattern + " not found")
         return parsed_section
 
+
 # TODO make sure that it can parse comments correctly.
 class ParseTXTFormat(MeshParser):
     """
     Parse a mesh stored in plain text files: classically nodes.txt and
-    elements.txt.
+    elements.txt. Does not contain any edge information.
 
     Required Arguments
     ------------------
@@ -153,9 +168,10 @@ class ParseTXTFormat(MeshParser):
       coordinates.
     """
     __doc__ += MeshParser.__doc__
+
     def __init__(self, file1, file2):
-        # figure out which file corresponds to elements and which corresponds to
-        # nodes. The node array must have more rows than the element array.
+        # figure out which file corresponds to elements and which corresponds
+        # to nodes. The node array must have more rows than the element array.
         array1 = np.loadtxt(file1)
         array2 = np.loadtxt(file2)
         if array1.shape[0] > array2.shape[0]:
@@ -169,6 +185,10 @@ class ParseTXTFormat(MeshParser):
         self.nodes = np.loadtxt(nodes_file, dtype=float)
         self.edges = list()
 
+    def _parse_section(self, pattern, line_parse_function):
+        pass
+
+
 class ParseMSHFormat(MeshParser):
     """
     Parse a mesh stored in the .msh format, the standard file format for GMSH.
@@ -178,24 +198,24 @@ class ParseMSHFormat(MeshParser):
     * mesh_file : file path to the .msh file.
     """
     __doc__ += MeshParser.__doc__
+
     def __init__(self, mesh_file):
         self._mesh_file = mesh_file
 
         mesh_format = self._parse_section("MeshFormat",
-                                          lambda x : tuple(x.split()),
-                                          has_count = False)
+                                          lambda x: tuple(x.split()),
+                                          has_count=False)
         if mesh_format[0][0] != "2.2":
             raise ValueError("Unsupported .msh version")
 
         elements = \
             self._parse_section("Elements",
-                                lambda x : tuple(map(int, x.split()[1:-1])))
+                                lambda x: tuple(map(int, x.split()[1:])))
         # hard-coded list of triangular entities. See GMSH documentation for
         # more details.
-        triangles = [x[5:] for x in elements
+        triangles = [x[4:] for x in elements
                      if x[0] in [2, 9, 20, 21, 22, 23, 24, 25]]
-        edges = [x[3:] + x[2] for x in elements
-                 if x[0] in [1, 8]]
+        edges = [x[4:] + (x[3],) for x in elements if x[0] in [1, 8]]
         try:
             self.elements = np.vstack(triangles)
         except ValueError as np_error:
@@ -204,11 +224,12 @@ class ParseMSHFormat(MeshParser):
 
         self.edges = edges
         nodes = self._parse_section("Nodes",
-                            lambda x : (tuple(map(float, x.split()[0:-1])),
-                                        int(x.split()[-1])))
-        self.nodes = np.vstack(map(lambda x : x[0], nodes))
+                                    lambda x: (tuple(map(float,
+                                                         x.split()[1:])),
+                                               int(x.split()[-1])))
+        self.nodes = np.vstack([x[0] for x in nodes])
 
-    def _parse_section(self, pattern, line_parse_function, has_count = True):
+    def _parse_section(self, pattern, line_parse_function, has_count=True):
         """
         Parse one chunk of the file, starting with some regex. Apply the
         function 'line_parse_function' to each line in the section. Return a
@@ -221,29 +242,55 @@ class ParseMSHFormat(MeshParser):
         if not has_count:
             found_count = True
 
-        with open(self._mesh_file) as f:
-            for line in f:
+        with open(self._mesh_file) as mesh_file:
+            for line in mesh_file:
                 if not found_section and re.search(pattern, line):
                     found_section = True
                     continue
 
-                # if there is a lone number then we are on the next line. Ignore
-                # it.
-                if found_section and not found_count \
-                    and re.search(r"^ *[0-9]+$", line):
-                    found_count = True
-                    continue
+                # if there is a lone number then we are on the next line.
+                # Ignore it.
+                if found_section:
+                    if not found_count and re.search(r"^ *[0-9]+$", line):
+                        found_count = True
+                        continue
 
-                # if we have found another string then the section is over.
-                if found_section and found_count \
-                    and re.search(r"^ *\$\w+", line):
-                    break
+                    # if we have found another string then the section is over.
+                    if found_count and re.search(r"^ *\$\w+", line):
+                        break
 
-                # correctly ignore blank lines.
-                if found_section and found_count \
-                    and not re.match(r"\s+$", line):
-                    parsed_section.append(line_parse_function(line))
+                    # correctly ignore blank lines.
+                    if found_count and not re.match(r"\s+$", line):
+                        parsed_section.append(line_parse_function(line))
 
         if not found_section:
             raise ValueError("Section with pattern " + pattern + " not found")
         return parsed_section
+
+
+class ParseArrays(MeshParser):
+    """
+    Not a parser, but for compatibility: instantiate something that looks
+    like a parsed mesh from the component arrays.
+
+    Required Arguments
+    ------------------
+    * elements : the element connectivity matrix.
+    * nodes    : the nodal coordinate matrix.
+
+    Optional Arguments
+    ------------------
+    * edges    : the edges of the finite element matrix.
+    """
+    __doc__ += MeshParser.__doc__
+
+    def __init__(self, elements, nodes, edges=None):
+        self.elements = elements
+        self.nodes = nodes
+        if edges:
+            self.edges = edges
+        else:
+            self.edges = []
+
+    def _parse_section(self, pattern, line_parse_function):
+        pass
