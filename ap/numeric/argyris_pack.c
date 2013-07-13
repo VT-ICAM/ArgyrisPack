@@ -16,7 +16,8 @@ void dgemm(char*, char*, int*, int*, int*, double*, double*, int*, double*, int*
  */
 
 #include "order_logic.h"
-#include "multiply_by_diagonal.c"
+#include "affine.c"
+#include "diagonal_multiply.c"
 
 #include "ref_values.c"
 #include "ref_gradients.c"
