@@ -30,9 +30,8 @@ void ap_matrix_stiffness(double* restrict C, double* restrict B,
          * scale the first set of gradient values by the weights and
          * determinant. Then perform matrix multiplication.
          */
-        multiply_by_diagonal(21, num_points, weights_scaled, dx_scaled);
-        multiply_by_diagonal(21, num_points, weights_scaled, dy_scaled);
-
+        ap_diagonal_multiply(21, num_points, dx_scaled, weights_scaled);
+        ap_diagonal_multiply(21, num_points, dy_scaled, weights_scaled);
         DGEMM_WRAPPER_NT(i_twentyone, i_twentyone, num_points, dx_scaled, dx,
                          stiffness);
         DGEMM_WRAPPER_NT_ADD_C(i_twentyone, i_twentyone, num_points, dy_scaled,

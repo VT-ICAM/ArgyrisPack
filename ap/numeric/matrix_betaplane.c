@@ -28,7 +28,7 @@ void ap_matrix_betaplane(double* restrict C, double* restrict B,
          * scale the function values by the weights and determinant. Then
          * perform matrix multiplication.
          */
-        multiply_by_diagonal(21, num_points, weights_scaled, values);
+        ap_diagonal_multiply(21, num_points, values, weights_scaled);
 
         DGEMM_WRAPPER_NT(i_twentyone, i_twentyone, num_points, values, dx,
                          betaplane);

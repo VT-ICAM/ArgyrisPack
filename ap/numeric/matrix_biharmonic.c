@@ -32,7 +32,7 @@ void ap_matrix_biharmonic(double* restrict C, double* restrict B,
          * Scale one set of laplacian values by the weights (themselves scaled
          * by the Jacobian) and then calculate the matrix of inner products.
          */
-        multiply_by_diagonal(21, num_points, weights_scaled, dxx);
+        ap_diagonal_multiply(21, num_points, dxx, weights_scaled);
         DGEMM_WRAPPER_NT(i_twentyone, i_twentyone, num_points, dxx, dyy,
                          biharmonic);
 }

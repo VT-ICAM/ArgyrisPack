@@ -26,7 +26,7 @@ void ap_matrix_mass(double* restrict C, double* restrict B,
          * scale the first set of function values by the weights and
          * determinant. Then perform matrix multiplication.
          */
-        multiply_by_diagonal(21, num_points, weights_scaled, function_values_scaled);
+        ap_diagonal_multiply(21, num_points, function_values_scaled, weights_scaled);
         DGEMM_WRAPPER_NT(i_twentyone, i_twentyone, num_points,
                          function_values_scaled, function_values, mass);
 }
