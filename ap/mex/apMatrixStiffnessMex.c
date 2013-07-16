@@ -5,7 +5,7 @@
 #include "blas.h"
 #include "order_logic.h"
 
-#include "multiply_by_diagonal.c"
+#include "diagonal_multiply.c"
 #include "physical_gradients.c"
 #include "matrix_stiffness.c"
 
