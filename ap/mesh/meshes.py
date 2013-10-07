@@ -1,10 +1,21 @@
 #! /usr/bin/env python
 """Collection of classes for representing finite element meshes."""
+import math
 import numpy as np
 from collections import namedtuple
 import ap.mesh.meshtools as meshtools
 import ap.mesh.parsers as parsers
 
+
+def _element_order(num_basis_functions):
+    """
+    Calculate the order of an element based on the number of basis
+    functions.
+
+    This formula is based on solving k = n*(n + 1)/2 (for a triangular
+    number k) and taking the positive root from the quadratic formula.
+    """
+    return int(round((math.sqrt(1 + 8*num_basis_functions) - 1)/2.0 - 1.0))
 
 def mesh_factory(*args, **kwargs):
     """
@@ -109,6 +120,8 @@ class Mesh(object):
     * interior_nodes   : Set containing the node numbers of nodes in the
                          interior.
 
+    * order            : Order of the interpolating polynomials.
+
     Methods
     -------
     * get_nnz() : Calculate the number of nonzero entries in a typical
@@ -127,7 +140,7 @@ class Mesh(object):
       prefix + name + _edges.txt.
     """
     def __init__(self, parsed_mesh, borders=None, default_border="land",
-                 ignore_given_edges=False, projection=lambda x: x):
+                 ignore_given_edges=False, projection=None):
         if borders is None:
             borders = {}
         self.elements = parsed_mesh.elements
@@ -140,8 +153,7 @@ class Mesh(object):
 
         if max(map(len, self.edge_collections.values())) == 0 \
                 or ignore_given_edges:
-            self.edge_collections = \
-                {default_border:
+            self.edge_collections = {default_border:
                  set(meshtools.extract_boundary_edges(self.elements))}
 
         if len(np.unique(self.elements)) != self.nodes.shape[0]:
@@ -156,6 +168,8 @@ class Mesh(object):
             interior_nodes -= set(self.boundary_nodes[name])
 
         self.interior_nodes = np.fromiter(interior_nodes, int)
+        self.order = _element_order(self.elements.shape[1])
+        self.mean_stepsize = self._get_stepsize()
 
     def get_nnz(self):
         """
@@ -243,6 +257,17 @@ class Mesh(object):
         self.elements = new_elements
         self.nodes = new_nodes
 
+    def _get_stepsize(self):
+        """
+        Calculate the average stepsize of the mesh (corner to corner).
+        """
+        return np.average(
+            np.sqrt((self.nodes[self.elements[:, 0] - 1, 0]
+                   - self.nodes[self.elements[:, 1] - 1, 0])**2 +
+                    (self.nodes[self.elements[:, 0] - 1, 1]
+                   - self.nodes[self.elements[:, 1] - 1, 1])**2))
+
+
 ArgyrisEdge = namedtuple('ArgyrisEdge',
                          ['element_number', 'edge_type', 'edge'])
 
@@ -292,11 +317,6 @@ class ArgyrisMesh(object):
                              default_border=default_border,
                              projection=projection,
                              ignore_given_edges=ignore_given_edges)
-
-        # if not projected, try to flatten as a last resort.
-        if lagrange_mesh.nodes.shape[1] == 3:
-            if np.all(lagrange_mesh.nodes[:, 2] == lagrange_mesh.nodes[0, 2]):
-                lagrange_mesh.nodes = lagrange_mesh.nodes[:, 0:2]
 
         if lagrange_mesh.nodes.shape[1] != 2:
             raise ValueError("Requires a 2D mesh; try a different projection.")
