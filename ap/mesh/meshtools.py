@@ -5,6 +5,27 @@ import numpy as np
 import ap.mesh.parsers as parsers
 
 
+def sorted_edges(element, argyris=True):
+    """
+    Return the edges (as sorted (start, end) tuples) of a given element.
+
+    Required Arguments
+    ------------------
+    * element : array-like container of the nodes comprising a finite element.
+                Assumed to be in GMSH or Argyris order.
+
+    Optional Arguments
+    ------------------
+    * argyris : Set to True (default) to treat the input as an Argyris
+                element.
+    """
+    if argyris:
+        return [tuple(sorted((element[i], element[j])))
+                for (i, j) in [(0, 1), (0, 2), (1, 2)]]
+    else:
+        raise NotImplementedError
+
+
 def extract_boundary_edges(elements):
     """
     Some meshes do not specify edge information. Extract it from the
@@ -85,7 +106,7 @@ def project_nodes(projection, elements, original_nodes,
     """
     if attempt_flatten:
         if np.all(original_nodes[:, -1] == original_nodes[0, -1]):
-            nodes = original_nodes[:, 0:-1]
+            nodes = np.ascontiguousarray(original_nodes[:, 0:-1])
             return nodes
 
     nodes = np.array([projection(node) for node in original_nodes])
