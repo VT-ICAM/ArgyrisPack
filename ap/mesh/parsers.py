@@ -101,22 +101,24 @@ class ParseMESHFormat(MeshParser):
     def __init__(self, mesh_file):
         self._mesh_file = mesh_file
 
-        elements = \
-            self._parse_section("Triangles",
-                                lambda x: tuple(map(int, x.split()[0:-1])))
+        def _element_parse(x):
+            xsplit = x.split()[0:-1]
+            return tuple(map(int, xsplit))
+        elements = self._parse_section("Triangles", _element_parse)
         self.elements = np.vstack(elements)
 
-        nodes = self._parse_section("Vertices",
-                                    lambda x: (tuple(map(float,
-                                                         x.split()[0:-1])),
-                                               int(x.split()[-1])))
-        self.nodes = np.vstack([x[0] for x in nodes])
+        def _node_parse(x):
+            xsplit = x.split()[0:-1]
+            return tuple(map(float, xsplit))
+
+        nodes = self._parse_section("Vertices", _node_parse)
+        self.nodes = np.vstack(nodes)
 
         # a .mesh value does not always have this section.
+        def _edge_parse(x):
+            return tuple(map(int, x.split()))
         try:
-            self.edges = \
-                self._parse_section("Edges",
-                                    lambda x: tuple(map(int, x.split())))
+            self.edges = self._parse_section("Edges", _edge_parse)
         except ValueError:
             self.edges = list()
 
