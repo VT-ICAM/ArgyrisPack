@@ -221,7 +221,7 @@ class ParseMSHFormat(MeshParser):
         try:
             self.elements = np.vstack(triangles)
         except ValueError as np_error:
-            raise ValueError(np_error.value + ". Ensure that the mesh is"
+            raise ValueError(str(np_error) + ". Ensure that the mesh is"
                              " conforming (all elements the same order)")
 
         self.edges = edges
