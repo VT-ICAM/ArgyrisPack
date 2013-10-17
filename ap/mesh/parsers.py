@@ -205,14 +205,12 @@ class ParseMSHFormat(MeshParser):
         self._mesh_file = mesh_file
 
         mesh_format = self._parse_section("MeshFormat",
-                                          lambda x: tuple(x.split()),
-                                          has_count=False)
+            lambda x: tuple(x.split()), has_count=False)
         if mesh_format[0][0] != "2.2":
             raise ValueError("Unsupported .msh version")
 
-        elements = \
-            self._parse_section("Elements",
-                                lambda x: tuple(map(int, x.split()[1:])))
+        elements = self._parse_section("Elements",
+            lambda x: tuple(map(int, x.split()[1:])))
         # hard-coded list of triangular entities. See GMSH documentation for
         # more details.
         triangles = [x[4:] for x in elements
@@ -226,9 +224,7 @@ class ParseMSHFormat(MeshParser):
 
         self.edges = edges
         nodes = self._parse_section("Nodes",
-                                    lambda x: (tuple(map(float,
-                                                         x.split()[1:])),
-                                               int(x.split()[-1])))
+            lambda x: (tuple(map(float, x.split()[1:])), int(x.split()[-1])))
         self.nodes = np.vstack([x[0] for x in nodes])
 
     def _parse_section(self, pattern, line_parse_function, has_count=True):
