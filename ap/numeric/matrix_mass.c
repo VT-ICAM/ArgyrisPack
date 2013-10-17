@@ -20,7 +20,8 @@ void ap_matrix_mass(double* restrict C, double* restrict B,
                 weights_scaled[i] = weights[i]*jacobian;
         }
 
-        memcpy(function_values_scaled, function_values, sizeof(double)*(21*num_points));
+        memcpy(function_values_scaled, function_values,
+               sizeof(double)*(21*num_points));
 
         /*
          * scale the first set of function values by the weights and
