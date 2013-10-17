@@ -40,12 +40,12 @@ def mesh_factory(*args, **kwargs):
                        (no projection)
 
     * borders        : a dictionary correlating names with GMSH 'Physical
-      Line' attributes. For example,
+                       Line' attributes. For example,
 
-          borders = {'open' : (1, 2)}
+                           borders = {'open' : (1, 2)}
 
-      will correlate edges on Physical Lines 1 and 2 with the 'open' edge
-      collection.
+                       will correlate edges on Physical Lines 1 and 2
+                       with the 'open' edge collection.
 
     * default_border : the default edge collection for any edges that
                        are not in a special_border collection. Defaults
@@ -291,18 +291,20 @@ class ArgyrisMesh(object):
 
     Properties
     ----------
-    * elements : a numpy array listing the node numbers of every element.
+    * elements          : a numpy array listing the node numbers of
+                          every element.
 
-    * edges_by_midpoint : a dictionary associating each element with a certain
-      edge (indexed by the normal derivative basis function number)
+    * edges_by_midpoint : a dictionary associating each element with a
+                          certain edge (indexed by the normal derivative
+                          basis function number)
 
-    * node_collections : a list of ArgyrisNodeCollection objects.
+    * node_collections  : a list of ArgyrisNodeCollection objects.
 
-    * nodes : a numpy array of node coordinates.
+    * nodes             : a numpy array of node coordinates.
 
     Methods
     -------
-    * savetxt: save the mesh in multiple text files.
+    * savetxt : save the mesh in multiple text files.
     """
     def __init__(self, parsed_mesh, borders=None, default_border="land",
                  ignore_given_edges=False, projection=lambda x: x):
@@ -480,15 +482,17 @@ class ArgyrisNodeCollection(object):
 
     Required Arguments
     ------------------
-    * function_values : set of basis function numbers that approximate function
-      values on the Argyris mesh.
+    * function_values    : set of basis function numbers that
+                           approximate function values on the Argyris
+                           mesh.
 
-    * normal_derivatives : set of the node numbers corresponding to normal
-      derivative basis functions.
+    * normal_derivatives : set of the node numbers corresponding to
+                           normal derivative basis functions.
 
-    * edges : set of tuples corresponding to (endpoint, endpoint, midpoint)
+    * edges              : set of tuples corresponding to
+                           (endpoint, endpoint, midpoint)
 
-    * mesh : the relevant Argyris mesh.
+    * mesh               : the relevant Argyris mesh.
 
     Optional Arguments
     ------------------
