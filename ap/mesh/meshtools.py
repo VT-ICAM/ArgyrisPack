@@ -128,35 +128,34 @@ def change_order(mesh, order):
     """
     Change the order of the elements in a mesh.
     """
-    # upgrade linears to quadratics.
-    reference_edges = [(0, 1), (1, 2), (2, 0)]
+    max_node_num = mesh.elements.max()
     if mesh.elements.shape[1] == 3 and order == 2:
-        edges = {tuple(sorted((element[i], element[j])))
-                 for (i, j) in reference_edges for element in mesh.elements}
-        new_elements     = np.ones((mesh.elements.shape[0], 6), dtype=np.int)
-        edge_to_midpoint = dict(zip(edges,
-                                    it.count(start=len(mesh.nodes) + 1)))
-        for element_number, element in enumerate(mesh.elements):
-            local_edges = [tuple(sorted((element[i], element[j])))
-                           for (i, j) in reference_edges]
-            for i, edge in enumerate(local_edges):
-                new_elements[element_number, i + 3] = edge_to_midpoint[edge]
+        new_elements = np.zeros((mesh.elements.shape[0], 6),
+                                dtype=mesh.elements.dtype)
+        new_elements[:, :3] = np.sort(mesh.elements, axis=1)
 
-        new_elements[:, 0:3] = mesh.elements
-        new_nodes = np.ones((new_elements.max(), mesh.nodes.shape[1]))*np.nan
-        new_nodes[0:mesh.nodes.shape[0]] = mesh.nodes
-        for (i, j) in reference_edges:
-            new_nodes[np.unique(new_elements[:, 3 + i]) - 1] = 0.5*(
-                mesh.nodes[new_elements[:, i] - 1, :]
-                + mesh.nodes[new_elements[:, j] - 1, :])
-        new_edges = []
-        for edge in mesh.edges:
-            midpoint = edge_to_midpoint[tuple(sorted(edge[0:2]))]
-            new_edge = tuple([edge[0], edge[1], midpoint, edge[2]])
-            new_edges.append(new_edge)
+        if len(mesh.edge_collections.items()) != 1:
+            raise NotImplementedError("Cannot handle multiple edge collections")
+        edge_lookup = dict()
+        midpoint_number = max_node_num + 1
+        for element in new_elements:
+            for k, (i, j) in enumerate([(0, 1), (1, 2), (0, 2)]):
+                pair = (element[i], element[j])
+                if pair not in edge_lookup:
+                    edge_lookup[pair] = midpoint_number
+                    midpoint_number += 1
+                element[k + 3] = edge_lookup[pair]
+
+        new_nodes = np.zeros((new_elements.max(), 2))
+        new_nodes[:max_node_num, :] = mesh.nodes
+        for edge, new_node in edge_lookup.items():
+            new_nodes[new_node - 1] = (
+                new_nodes[edge[0] - 1] + new_nodes[edge[1] - 1])/2.0
+
     else:
         raise NotImplementedError("Unsupported mesh order conversion")
-    return parsers.ParseArrays(new_elements, new_nodes, edges=new_edges)
+    return new_elements, new_nodes
+    # return parsers.ParseArrays(new_elements, new_nodes, edges=new_edges)
 
 
 def organize_edges(edges, borders=None, default_border='land'):

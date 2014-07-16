@@ -156,7 +156,6 @@ class ParseMESHFormat(MeshParser):
         return parsed_section
 
 
-# TODO make sure that it can parse comments correctly.
 class ParseTXTFormat(MeshParser):
     """
     Parse a mesh stored in plain text files: classically nodes.txt and
@@ -164,27 +163,17 @@ class ParseTXTFormat(MeshParser):
 
     Required Arguments
     ------------------
-    * elements_file : file path to the text file containing the element
-      connectivity matrix.
-    * nodes_file : file path to the text file containing the node
-      coordinates.
+    * element_file_name : file path to the text file containing the element
+      connectivity matrix. Defaults to "elements.txt".
+    * node_file_name : file path to the text file containing the node
+      coordinates. Defaults to "nodes.txt".
     """
     __doc__ += MeshParser.__doc__
 
-    def __init__(self, file1, file2):
-        # figure out which file corresponds to elements and which corresponds
-        # to nodes. The node array must have more rows than the element array.
-        array1 = np.loadtxt(file1)
-        array2 = np.loadtxt(file2)
-        if array1.shape[0] > array2.shape[0]:
-            nodes_file = file1
-            elements_file = file2
-        else:
-            elements_file = file1
-            nodes_file = file2
-
-        self.elements = np.loadtxt(elements_file, dtype=int)
-        self.nodes = np.loadtxt(nodes_file, dtype=float)
+    def __init__(self, element_file_name="elements.txt",
+                 node_file_name="nodes.txt"):
+        self.elements = np.loadtxt(element_file_name, dtype=np.int)
+        self.nodes = np.loadtxt(node_file_name, dtype=np.float64)
         self.edges = list()
 
     def _parse_section(self, pattern, line_parse_function):
