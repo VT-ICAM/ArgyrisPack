@@ -1,9 +1,12 @@
 #! /usr/bin/env python
+import os
+import sys
 import numpy as np
 import ctypes as ct
 
-# TODO get this path to work in a more general way.
-_ap = np.ctypeslib.load_library('libargyris_pack.so', '.')
+_module_path = os.path.dirname(unicode(os.path.abspath(__file__),
+        sys.getfilesystemencoding())) + os.sep + ".." + os.sep
+_ap = np.ctypeslib.load_library('libargyris_pack.so', _module_path)
 
 array_1d_double = np.ctypeslib.ndpointer(dtype=np.double, ndim=1, flags='C_CONTIGUOUS')
 array_2d_double = np.ctypeslib.ndpointer(dtype=np.double, ndim=2, flags='C_CONTIGUOUS')
