@@ -34,7 +34,7 @@ double __d_one = 1;
         /* wrap C := A.T*B; note E is n x k, D.T is k x m, and F is n x m */
         #define DGEMM_WRAPPER_TN(m, n, k, D, E, F) \
         dgemm(&(__c_N), &(__c_T), &(n), &(m), &(k), &(__d_one), E, &(n), D, \
-              &(m), &(__d_zero), F, &(m))
+              &(m), &(__d_zero), F, &(n))
         /* wrap C := A.T*B; note E.T is n x k, D is k x m, and F is n x m */
         #define DGEMM_WRAPPER_NT(m, n, k, D, E, F) \
         dgemm(&(__c_T), &(__c_N), &(n), &(m), &(k), &(__d_one), E, &(k), D, \
