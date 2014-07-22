@@ -154,8 +154,7 @@ def change_order(mesh, order):
 
     else:
         raise NotImplementedError("Unsupported mesh order conversion")
-    return new_elements, new_nodes
-    # return parsers.ParseArrays(new_elements, new_nodes, edges=new_edges)
+    return parsers.ParseArrays(new_elements, new_nodes)
 
 
 def organize_edges(edges, borders=None, default_border='land'):
