@@ -22,8 +22,8 @@ void ap_physical_maps(double* restrict x, double* restrict y,
                       double* restrict C, double* restrict B,
                       double* restrict b);
 
-void ap_physical_functions(double* restrict C, double* restrict ref_values,
-                           LAPACKINDEX num_points, double* restrict values);
+void ap_physical_values(double* restrict C, double* restrict ref_values,
+                        LAPACKINDEX num_points, double* restrict values);
 
 void ap_physical_gradients(double* restrict C, double* restrict B,
                            double* restrict ref_dx, double* restrict ref_dy,
